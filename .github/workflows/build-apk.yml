@@ -36,6 +36,14 @@ jobs:
       - name: Tạo dự án Android
         run: npx cap add android
 
+      - name: Thêm plugin tự bật GPS (hộp thoại Google)
+        run: |
+          D=android/app/src/main/java/com/cuahang/tim
+          mkdir -p $D
+          cp native/*.java $D/
+          sed -i '/^dependencies {/a\    implementation "com.google.android.gms:play-services-location:21.3.0"' android/app/build.gradle
+          grep -n "play-services-location" android/app/build.gradle
+
       - name: Thêm quyền GPS + Camera
         run: |
           M=android/app/src/main/AndroidManifest.xml
@@ -67,6 +75,7 @@ jobs:
   # ===== 2. Đăng bản web lên GitHub Pages (có link https) =====
   web:
     runs-on: ubuntu-latest
+    continue-on-error: true   # repo private không có Pages thì bỏ qua, APK vẫn build bình thường
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
