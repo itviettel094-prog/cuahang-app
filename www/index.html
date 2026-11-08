@@ -872,13 +872,12 @@ function showResults(results,source){
   });
   currentResults=results;renderResults(results,source);selectResult(0);
   
-  // Hiển thị luôn nút tìm Google Maps ở dưới cùng để người dùng dễ bấm nếu kết quả chưa đúng ý
+  // Hiển thị nút tìm Google Maps ở cuối danh sách kết quả nội bộ
   showMapsSearchBtn();
 
   if(userPos)logEvt('SAU_TIM',{sid:lastSid,q:lastQ,count:results.length,lat:userPos.lat,lng:userPos.lng,acc:Math.round(userPos.acc),pt:userPos.time});
 }
 
-  
 function doSearch(){
   var q=$('storeInput').value.trim();resetUI();
   if(!q){$('status').innerHTML='<span class="error">Vui lòng nhập tên cửa hàng hoặc toạ độ.</span>';return;}
@@ -922,9 +921,9 @@ function loadGoogleNearby(lat,lng){
   box.innerHTML='<div class="g-head">🌐 Cửa hàng do Google đề xuất</div><div class="hint">Đang tìm thêm cửa hàng tạp hoá gần bạn trên Google Maps...</div>';
   api('googleNearby',Object.assign({lat:lat,lng:lng,kind:'GOOGLE ĐỀ XUẤT',q:''},uparams())).then(function(res){
     if(my!==googleSeq)return;
-    showMapsSearchBtn();
     if(!res||!res.success){
       box.innerHTML='<div class="g-head">🌐 Cửa hàng do Google đề xuất</div><div class="hint">'+esc((res&&res.message)||'Không lấy được gợi ý.')+'</div>';
+      showMapsSearchBtn();
       return;
     }
     var list=res.results.filter(function(g){
@@ -933,7 +932,9 @@ function loadGoogleNearby(lat,lng){
     googleResults=list;
     list.forEach(function(g){g.dUser=userPos?distM(userPos.lat,userPos.lng,g.lat,g.lng):null;});
     if(!list.length){
-      box.innerHTML='<div class="g-head">🌐 Cửa hàng do Google đề xuất</div><div class="hint">Google không có thêm cửa hàng nào khác gần bạn.</div>';return;
+      box.innerHTML='<div class="g-head">🌐 Cửa hàng do Google đề xuất</div><div class="hint">Google không có thêm cửa hàng nào khác gần bạn.</div>';
+      showMapsSearchBtn();
+      return;
     }
     var h='<div class="g-head">🌐 Cửa hàng do Google đề xuất</div><div class="hint" style="margin:0 0 8px">Dữ liệu từ Google Maps, <b>chưa có trong danh sách của công ty</b>.</div>';
     list.forEach(function(g,i){
@@ -942,6 +943,9 @@ function loadGoogleNearby(lat,lng){
         '<a class="nav-btn" data-g="'+i+'" href="'+navUrl(g)+'" target="_blank" rel="noopener">🧭 Chỉ đường</a></div>';
     });
     box.innerHTML=h;
+    
+    // Đảm bảo nút Google Maps luôn nằm ở tận cùng dưới cùng của toàn bộ trang kết quả sau khi tải xong Google Nearby
+    showMapsSearchBtn();
   });
 }
 var GROCERY_Q='cửa hàng tạp hóa';
@@ -959,12 +963,11 @@ function openGroceryMaps(){
   var geo=p?('geo:'+p.lat+','+p.lng+'?q='+encodeURIComponent(GROCERY_Q)):('geo:0,0?q='+encodeURIComponent(GROCERY_Q));
   AL.openUrl({url:geo}).then(function(r){if(!r||!r.completed)AL.openUrl({url:web}).catch(function(){});}).catch(function(){AL.openUrl({url:web}).catch(function(){});});
 }
-  function showNotFound(msg){
+function showNotFound(msg){
   var addBtn = isAdmin() ? '<button class="btn-green" onclick="openForm(false)">➕ Thêm mới</button>' : '';
   $('notFoundBox').innerHTML = '<div class="notfound"><p>⚠️ ' + esc(msg) + '</p>' +
    '<div class="row wrap">' +
    addBtn + '</div></div>';
-  // Luôn hiển thị nút tìm Google Maps ở cuối khi tìm kiếm xong (dù thấy hay không thấy)
   showMapsSearchBtn();
 }
 function searchOnMaps(){
@@ -1219,6 +1222,7 @@ function impParseCsv(text){
     if(q){ if(ch==='"'){ if(text.charAt(i+1)==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
     else if(ch==='"')q=true;
     else if(ch===d){row.push(cur);cur='';}
+    else if(ch===sprintf('\n')){row.push(cur);rows.push(row);row=[];cur='';} // fallback
     else if(ch==='\n'){row.push(cur);rows.push(row);row=[];cur='';}
     else if(ch!=='\r')cur+=ch;
   }
