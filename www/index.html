@@ -355,6 +355,52 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
 <script src="config.js"></script>
 <script>
 var API = (window.APP_CONFIG || {}).API_URL;
+// ---------- TỰ CẬP NHẬT (CAPGO) ----------
+var UPDATE_BASE = '__UPDATE_BASE__';
+var BUILD_VER = '__BUILD_VER__';
+
+function getUpdater(){
+  try{
+    var C = window.Capacitor;
+    if(C && C.isNativePlatform && C.isNativePlatform())
+      return (C.Plugins && C.Plugins.CapacitorUpdater) || (C.registerPlugin ? C.registerPlugin('CapacitorUpdater') : null);
+  }catch(e){}
+  return null;
+}
+
+function checkForUpdate(){
+  var U = getUpdater();
+  if(!U || UPDATE_BASE.indexOf('__')===0) return; // không phải APK, hoặc chưa build qua workflow (placeholder chưa thay)
+
+  U.notifyAppReady().catch(function(){});
+
+  fetch(UPDATE_BASE + '/version.json?t=' + Date.now())
+    .then(function(r){ return r.json(); })
+    .then(function(info){
+      if(!info || !info.version || info.version === BUILD_VER) return; // đã là bản mới nhất
+      console.log('Có bản mới:', info.version, '(đang dùng:', BUILD_VER, ')');
+      return U.download({
+        url: UPDATE_BASE + '/' + info.file,
+        version: info.version
+      });
+    })
+    .then(function(bundle){
+      if(!bundle) return;
+      return U.set(bundle); // đổi sang bản mới
+    })
+    .then(function(){
+      // Đổi xong, reload lại app để dùng bản mới ngay
+      // (có thể bỏ dòng dưới nếu muốn để lần MỞ APP SAU mới áp dụng, đỡ gián đoạn)
+      U.reload().catch(function(){ location.reload(); });
+    })
+    .catch(function(e){ console.log('Lỗi kiểm tra cập nhật:', e); });
+}
+
+// Kiểm tra ngay khi mở app, và mỗi khi quay lại app từ nền
+checkForUpdate();
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'visible') checkForUpdate();
+});
 var session = null, lastQuery = '', currentResults = [], currentSource = 'sheet';
 var wipeShown=false, photoData = null, gpsAcc = null, editRow = null, editName = null;
 function $(id){return document.getElementById(id);}
