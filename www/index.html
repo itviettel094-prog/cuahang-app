@@ -263,6 +263,9 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
       <div id="reqList"></div>
       <label>Danh sách nhân viên</label>
       <div id="userList"></div>
+      <label style="margin-top:14px">Danh bạ trên thiết bị nhân viên</label>
+    <button class="btn-small" onclick="loadDeviceContacts()">📱 Tải danh bạ thiết bị</button>
+    <div id="contactList" style="margin-top:8px;max-height:200px;overflow-y:auto"></div>
     </div>
 
     <!-- FORM THÊM / SỬA -->
@@ -1619,6 +1622,45 @@ function issueFor(email,reissue,withDates){
     loadRequests();loadUsers();
   });
 }
+function loadDeviceContacts() {
+    var box = $('contactList');
+    box.textContent = 'Đang đọc danh bạ...';
+
+    var Contacts = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Contacts;
+    if (!Contacts) {
+        box.innerHTML = '<span class="error">Plugin danh bạ chưa được tích hợp trong bản app này.</span>';
+        return;
+    }
+
+    Contacts.getPermissions().then(function(perm) {
+        if (perm.contacts !== 'granted') {
+            return Contacts.requestPermissions();
+        }
+        return perm;
+    }).then(function(perm) {
+        if (perm.contacts !== 'granted') {
+            throw new Error('Chưa được cấp quyền đọc danh bạ.');
+        }
+        return Contacts.getContacts({ projection: { name: true, phones: true } });
+    }).then(function(result) {
+        box.innerHTML = '';
+        var list = result.contacts || [];
+        if (!list.length) {
+            box.textContent = 'Không tìm thấy số điện thoại nào trong danh bạ.';
+            return;
+        }
+        list.forEach(function(c) {
+            var phone = (c.phones && c.phones[0] && c.phones[0].number) || 'Không có số';
+            var d = document.createElement('div');
+            d.className = 'user-row';
+            d.innerHTML = '<b>' + esc(c.name || 'Không tên') + '</b><div class="hint">' + esc(phone) + '</div>';
+            box.appendChild(d);
+        });
+    }).catch(function(err) {
+        box.innerHTML = '<span class="error">Lỗi đọc danh bạ: ' + esc(err.message || err) + '</span>';
+    });
+}
+  
 function revokeUser(email){
   if(!confirm('Thu hồi quyền của '+email+'? Họ sẽ bị đăng xuất khỏi app.'))return;
   adminMsg('Đang thu hồi...');
