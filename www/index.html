@@ -865,13 +865,20 @@ function parseQueryCoord(q){
   if(p.length!==2||isNaN(p[0])||isNaN(p[1])||Math.abs(p[0])>90||Math.abs(p[1])>180)return null;
   return {lat:p[0],lng:p[1]};
 }
+
 function showResults(results,source){
   results.forEach(function(p){
     p.dUser=(userPos&&typeof p.lat==='number'&&typeof p.lng==='number')?distM(userPos.lat,userPos.lng,p.lat,p.lng):null;
   });
   currentResults=results;renderResults(results,source);selectResult(0);
+  
+  // Hiển thị luôn nút tìm Google Maps ở dưới cùng để người dùng dễ bấm nếu kết quả chưa đúng ý
+  showMapsSearchBtn();
+
   if(userPos)logEvt('SAU_TIM',{sid:lastSid,q:lastQ,count:results.length,lat:userPos.lat,lng:userPos.lng,acc:Math.round(userPos.acc),pt:userPos.time});
 }
+
+  
 function doSearch(){
   var q=$('storeInput').value.trim();resetUI();
   if(!q){$('status').innerHTML='<span class="error">Vui lòng nhập tên cửa hàng hoặc toạ độ.</span>';return;}
@@ -952,12 +959,13 @@ function openGroceryMaps(){
   var geo=p?('geo:'+p.lat+','+p.lng+'?q='+encodeURIComponent(GROCERY_Q)):('geo:0,0?q='+encodeURIComponent(GROCERY_Q));
   AL.openUrl({url:geo}).then(function(r){if(!r||!r.completed)AL.openUrl({url:web}).catch(function(){});}).catch(function(){AL.openUrl({url:web}).catch(function(){});});
 }
-function showNotFound(msg){
+  function showNotFound(msg){
   var addBtn = isAdmin() ? '<button class="btn-green" onclick="openForm(false)">➕ Thêm mới</button>' : '';
   $('notFoundBox').innerHTML = '<div class="notfound"><p>⚠️ ' + esc(msg) + '</p>' +
    '<div class="row wrap">' +
-   '<button class="btn-red" onclick="searchOnMaps()">🔎 Tìm trên Google Maps</button>' +
    addBtn + '</div></div>';
+  // Luôn hiển thị nút tìm Google Maps ở cuối khi tìm kiếm xong (dù thấy hay không thấy)
+  showMapsSearchBtn();
 }
 function searchOnMaps(){
   $('notFoundBox').innerHTML='';$('status').textContent='Đang tìm trên bản đồ...';
