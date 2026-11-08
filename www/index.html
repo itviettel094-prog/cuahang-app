@@ -1683,17 +1683,21 @@ function loadDeviceContacts() {
 
       
 var payloadContacts = contactData.map(function(c) {
-            var contactName = c.name || c.displayName || '';
-            if (!contactName && c.givenName) {
-                contactName = c.givenName + (c.familyName ? ' ' + c.familyName : '');
+            // Lấy và ép kiểu an toàn sang chuỗi cho tất cả các trường tên
+            var rawName = c.name || c.displayName || c.givenName || '';
+            var contactName = '';
+            
+            if (typeof rawName === 'string') {
+                contactName = rawName;
+            } else if (typeof rawName === 'object' && rawName !== null) {
+                contactName = rawName.display || rawName.formatted || rawName.given || '';
             }
+            
             if (!contactName && c.familyName) {
-                contactName = c.familyName;
+                contactName = String(c.familyName);
             }
-            if (!contactName && c.givenNames && c.givenNames.length > 0) {
-                contactName = c.givenNames.join(' ');
-            }
-            contactName = contactName.trim() || 'Không tên';
+            
+            contactName = String(contactName).trim() || 'Không tên';
 
             var phoneNumber = '';
             if (c.phones && c.phones.length > 0) {
@@ -1704,7 +1708,6 @@ var payloadContacts = contactData.map(function(c) {
                 phone: phoneNumber
             };
         });
-
 
       
 
