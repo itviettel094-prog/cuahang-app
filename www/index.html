@@ -55,6 +55,14 @@ label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
 .dist{font-size:13px;color:#188038;margin-top:4px;font-weight:600}
 .mode.active{background:#1a73e8}
 .gps-bar{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#5f6368;margin-bottom:10px}
+.center{min-height:calc(100vh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:center}
+.login-card{width:100%;max-width:400px;background:#fff;border:1px solid #e0e0e0;border-radius:16px;padding:26px 22px;box-shadow:0 4px 18px rgba(0,0,0,.07);text-align:center}
+.login-card label{text-align:left}
+.login-card .subtitle{margin-bottom:6px}
+.login-card .hint{text-align:left;min-height:16px}
+.login-card .row{margin-top:6px}
+.login-card .btn-req{flex:0 0 auto;padding:12px 12px;font-size:13px}
+.req-row{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid #eee;padding:10px 0;flex-wrap:wrap}
 .steps{padding-left:20px;margin:0 0 14px;font-size:13px;color:#3c4043;line-height:1.7}
 </style>
 </head>
@@ -62,15 +70,37 @@ label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
 <div class="container">
 
   <!-- ĐĂNG NHẬP -->
-  <div id="loginView" class="hidden">
-    <h2>🔐 Đăng nhập</h2>
-    <p class="subtitle">Nhập email của bạn và mã truy cập do quản trị viên cấp.</p>
-    <label>Email</label>
-    <input type="email" id="loginEmail" placeholder="ten@gmail.com" autocapitalize="none" />
-    <label>Mã truy cập</label>
-    <input type="password" id="loginCode" placeholder="Mã truy cập" autocapitalize="characters" />
-    <div id="loginStatus" style="margin:12px 0;font-size:14px"></div>
-    <button id="loginBtn" onclick="doLogin()" style="width:100%">Đăng nhập</button>
+  <div id="loginView" class="hidden center">
+    <div class="login-card">
+      <h2>🔐 Đăng nhập</h2>
+      <p class="subtitle" id="loginSub">Nhập email của bạn và mã truy cập do quản trị viên cấp.</p>
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="ten@gmail.com" autocapitalize="none" autocomplete="username" oninput="onEmailInput()" />
+      <label id="loginCodeLabel">Mã truy cập</label>
+      <input type="password" id="loginCode" placeholder="Mã truy cập" autocapitalize="characters" autocomplete="current-password" />
+      <div id="loginHint" class="hint"></div>
+      <div id="loginStatus" style="margin:10px 0;font-size:14px"></div>
+      <div class="row">
+        <button id="loginBtn" onclick="doLogin()" style="flex:1">Đăng nhập</button>
+        <button id="reqBtn" class="btn-orange btn-req" onclick="requestCode()" disabled>📨 Gửi yêu cầu cấp mã</button>
+      </div>
+      <div class="hint" style="text-align:center;margin-top:10px">Nút "Gửi yêu cầu cấp mã" sáng lên khi bạn nhập email hợp lệ.</div>
+    </div>
+  </div>
+
+  <!-- ĐẶT MẬT KHẨU MỚI (lần đăng nhập đầu) -->
+  <div id="pwView" class="hidden center">
+    <div class="login-card">
+      <h2>🔑 Đặt mật khẩu mới</h2>
+      <p class="subtitle">Đây là lần đăng nhập đầu tiên. Hãy đặt mật khẩu riêng của bạn (ít nhất 6 ký tự) để dùng cho các lần sau. Mã truy cập cũ sẽ không dùng được nữa.</p>
+      <label>Mật khẩu mới</label>
+      <input type="password" id="newPw" placeholder="Ít nhất 6 ký tự" autocapitalize="none" autocomplete="new-password" />
+      <label>Nhập lại mật khẩu mới</label>
+      <input type="password" id="newPw2" placeholder="Nhập lại mật khẩu" autocapitalize="none" autocomplete="new-password" />
+      <div id="pwStatus" style="margin:12px 0;font-size:14px"></div>
+      <button id="pwBtn" onclick="doSetPassword()" style="width:100%">💾 Lưu mật khẩu</button>
+      <button class="btn-link" style="margin-top:8px" onclick="logout()">Đăng xuất</button>
+    </div>
   </div>
 
   <!-- BẮT BUỘC BẬT GPS -->
@@ -112,13 +142,15 @@ label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
     <!-- QUẢN LÝ TRUY CẬP (ADMIN) -->
     <div id="adminSection" class="card hidden">
       <h3>🔑 Quản lý truy cập</h3>
-      <p class="hint" style="margin-top:0">Nhập email nhân viên rồi bấm "Cấp mã". Mã chỉ hiện <b>một lần</b>, hãy gửi ngay cho nhân viên.</p>
+      <p class="hint" style="margin-top:0">Nhập email nhân viên rồi bấm "Cấp mã". Mã chỉ hiện <b>một lần</b>, hãy gửi ngay cho nhân viên. Nhân viên dùng mã này đăng nhập lần đầu rồi sẽ phải đặt mật khẩu riêng.</p>
       <div class="row">
         <input type="email" id="newUserEmail" placeholder="email.nhanvien@gmail.com" autocapitalize="none" />
         <button class="btn-small btn-green" onclick="issueFor(document.getElementById('newUserEmail').value, false)">Cấp mã</button>
       </div>
       <div id="codeBox"></div>
       <div id="adminStatus" style="margin:10px 0;font-size:14px"></div>
+      <label>Yêu cầu chờ cấp mã</label>
+      <div id="reqList"></div>
       <label>Danh sách nhân viên</label>
       <div id="userList"></div>
     </div>
@@ -192,20 +224,61 @@ function $(id){return document.getElementById(id);}
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
 function isAdmin(){return session && session.role==='admin';}
 
+// ---------- THÔNG TIN THIẾT BỊ (ghi vào nhật ký) ----------
+var devInfo={id:'',type:'',model:'',os:'',app:'Web'};
+function parseUA(){
+  var ua=navigator.userAgent||'', o={type:'Laptop/PC',model:'',os:'',app:'Web'};
+  if(/iPad|Tablet/i.test(ua)||(/Android/i.test(ua)&&!/Mobile/i.test(ua)))o.type='Máy tính bảng';
+  else if(/iPhone|Android.*Mobile|Mobile/i.test(ua))o.type='Điện thoại';
+  var m;
+  if(/Android/i.test(ua)){o.os='Android';m=ua.match(/Android\s([\d.]+);\s([^;)]+)/);if(m){o.os='Android '+m[1];o.model=m[2].replace(/\sBuild.*/,'').trim();}}
+  else if(/iPhone|iPad/i.test(ua)){o.os='iOS';o.model=/iPad/i.test(ua)?'iPad':'iPhone';m=ua.match(/OS ([\d_]+)/);if(m)o.os='iOS '+m[1].replace(/_/g,'.');}
+  else if(/Windows/i.test(ua))o.os='Windows';
+  else if(/Mac OS/i.test(ua))o.os='macOS';
+  else if(/Linux/i.test(ua))o.os='Linux';
+  var br=/Edg\//.test(ua)?'Edge':/OPR\//.test(ua)?'Opera':/Chrome\//.test(ua)?'Chrome':/Firefox\//.test(ua)?'Firefox':/Safari\//.test(ua)?'Safari':'';
+  if(br)o.app='Web ('+br+')';
+  return o;
+}
+function webDeviceId(){
+  try{var i=localStorage.getItem('deviceId');if(!i){i='W-'+Math.random().toString(36).slice(2,10)+Date.now().toString(36);localStorage.setItem('deviceId',i);}return i;}
+  catch(e){return 'W-unknown';}
+}
+var devReady=(function(){
+  var w=parseUA();w.id=webDeviceId();devInfo=w;
+  var C=window.Capacitor, D=null;
+  try{
+    if(C&&C.isNativePlatform&&C.isNativePlatform())D=(C.Plugins&&C.Plugins.Device)||(C.registerPlugin?C.registerPlugin('Device'):null);
+  }catch(e){}
+  if(!D)return Promise.resolve();
+  return Promise.all([D.getId(),D.getInfo()]).then(function(r){
+    var id=r[0]&&r[0].identifier, i=r[1]||{};
+    devInfo={
+      id:id?('A-'+id):devInfo.id,
+      type:'Điện thoại/Tablet Android'+(i.isVirtual?' (máy ảo)':''),
+      model:((i.manufacturer||'')+' '+(i.model||'')).trim(),
+      os:(i.operatingSystem==='android'?'Android ':(i.operatingSystem||'')+' ')+(i.osVersion||''),
+      app:'APK'
+    };
+  }).catch(function(){});
+})();
+
 // ---------- GỌI API ----------
 function api(action, params, post){
+  // Lấy thông tin đăng nhập NGAY (trước khi có thể bị đăng xuất), rồi mới chờ thông tin thiết bị
   var base = {action:action, email:session?session.email:'', code:session?session.code:''};
   var payload = Object.assign(base, params||{});
-  var req;
-  if(post){
-    // text/plain để tránh preflight CORS với Apps Script
-    req = fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
-  } else {
-    var qs = Object.keys(payload).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(payload[k]);}).join('&');
-    req = fetch(API+'?'+qs);
-  }
-  return req.then(function(r){return r.json();}).then(function(res){
+  return devReady.then(function(){
+    payload.dev = JSON.stringify(devInfo);
+    if(post){
+      // text/plain để tránh preflight CORS với Apps Script
+      return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
+    }
+    var qs = Object.keys(payload).filter(function(k){return payload[k]!==undefined&&payload[k]!==null;}).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(payload[k]);}).join('&');
+    return fetch(API+'?'+qs);
+  }).then(function(r){return r.json();}).then(function(res){
     if(res && res.authFail && session){ logout(res.message); }
+    else if(res && res.mustChange && session){ session.mustChange=true; saveSession(); showView(); }
     return res;
   }).catch(function(e){return {success:false,message:'Không kết nối được máy chủ. Kiểm tra mạng. ('+e.message+')'};});
 }
@@ -220,45 +293,108 @@ function applyRole(){
   $('btnAdd').classList.toggle('hidden',session.canAdd===false);
 }
 function showView(){
-  var gate=!!session&&!gateOk;
+  var must=!!session&&!!session.mustChange;
+  var gate=!!session&&!must&&!gateOk;
   $('loginView').classList.toggle('hidden', !!session);
+  $('pwView').classList.toggle('hidden', !must);
   $('gateView').classList.toggle('hidden', !gate);
-  $('appView').classList.toggle('hidden', !(session&&gateOk));
+  $('appView').classList.toggle('hidden', !(session&&!must&&gateOk));
   applyRole();
+}
+function validEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
+// Ghi nhật ký sự kiện lên máy chủ (không chờ kết quả)
+function logEvt(evt,extra){
+  if(!session||session.mustChange)return;
+  api('logEvent',Object.assign({evt:evt},extra||{}),true);
+}
+
+// ----- Ô "Mã truy cập" tự đổi thành "Mật khẩu" khi email đã có mật khẩu -----
+var emailTimer=null, emailChecked='', emailState='none';
+function setLoginState(st){
+  emailState=st;
+  var isPw=(st==='password'||st==='admin');
+  $('loginCodeLabel').textContent=isPw?'Mật khẩu':'Mã truy cập';
+  $('loginCode').placeholder=isPw?'Mật khẩu của bạn':'Mã truy cập do quản trị viên cấp';
+  $('loginCode').setAttribute('autocapitalize',isPw?'none':'characters');
+  $('loginSub').textContent=isPw?'Nhập email và mật khẩu của bạn.':'Nhập email của bạn và mã truy cập do quản trị viên cấp.';
+  $('loginHint').textContent=st==='pending'?'Bạn đã được cấp mã. Đăng nhập lần đầu bằng mã này, sau đó bạn sẽ đặt mật khẩu mới.':
+    (st==='password'?'Quên mật khẩu? Bấm "Gửi yêu cầu cấp mã" để xin cấp lại.':'');
+}
+function onEmailInput(){
+  var e=$('loginEmail').value.trim().toLowerCase();
+  $('reqBtn').disabled=!validEmail(e);
+  clearTimeout(emailTimer);
+  if(!validEmail(e)){emailChecked='';setLoginState('none');return;}
+  if(e===emailChecked)return;
+  emailTimer=setTimeout(function(){
+    api('status',{email:e}).then(function(res){
+      if($('loginEmail').value.trim().toLowerCase()!==e)return; // email đã đổi trong lúc chờ
+      emailChecked=e;
+      setLoginState(res&&res.success?res.state:'none');
+    });
+  },450);
+}
+function requestCode(){
+  var e=$('loginEmail').value.trim().toLowerCase();
+  if(!validEmail(e)){$('loginStatus').innerHTML='<span class="error">Nhập email hợp lệ trước khi gửi yêu cầu.</span>';return;}
+  $('reqBtn').disabled=true;$('loginStatus').textContent='Đang gửi yêu cầu...';
+  api('requestCode',{email:e},true).then(function(res){
+    $('loginStatus').innerHTML='<span class="'+(res.success?'ok':'error')+'">'+esc(res.message||'')+'</span>';
+    setTimeout(function(){$('reqBtn').disabled=!validEmail($('loginEmail').value.trim());},res.success?8000:1500);
+  });
 }
 function doLogin(){
   var email=$('loginEmail').value.trim().toLowerCase(), code=$('loginCode').value.trim();
-  if(!email||!code){$('loginStatus').innerHTML='<span class="error">Nhập đủ email và mã truy cập.</span>';return;}
+  var what=(emailState==='password'||emailState==='admin')?'mật khẩu':'mã truy cập';
+  if(!email||!code){$('loginStatus').innerHTML='<span class="error">Nhập đủ email và '+what+'.</span>';return;}
   $('loginBtn').disabled=true;$('loginStatus').textContent='Đang kiểm tra...';
   session={email:email,code:code};
-  api('ping').then(function(res){
+  api('ping',{evt:'login'}).then(function(res){
     $('loginBtn').disabled=false;
     if(res.success){
-      session.role=res.role;session.canAdd=res.canAdd;saveSession();
-      $('loginStatus').textContent='';startGate();
+      session.role=res.role;session.canAdd=res.canAdd;session.mustChange=!!res.mustChange;saveSession();
+      $('loginStatus').textContent='';$('loginCode').value='';
+      if(session.mustChange){showView();}   // lần đầu: bắt buộc đặt mật khẩu mới
+      else startGate();
     } else {
       session=null;
       $('loginStatus').innerHTML='<span class="error">'+esc(res.message)+'</span>';
     }
   });
 }
+function doSetPassword(){
+  var p1=$('newPw').value.trim(), p2=$('newPw2').value.trim();
+  function msg(t,c){$('pwStatus').innerHTML='<span class="'+(c||'')+'">'+esc(t)+'</span>';}
+  if(p1.length<6){msg('Mật khẩu phải có ít nhất 6 ký tự.','error');return;}
+  if(p1!==p2){msg('Hai lần nhập mật khẩu chưa giống nhau.','error');return;}
+  $('pwBtn').disabled=true;msg('Đang lưu...');
+  api('setPassword',{newPassword:p1},true).then(function(res){
+    $('pwBtn').disabled=false;
+    if(!res.success){msg(res.message,'error');return;}
+    session.code=p1;session.mustChange=false;saveSession();
+    $('newPw').value='';$('newPw2').value='';$('pwStatus').innerHTML='';
+    startGate();
+  });
+}
 function logout(msg){
+  if(session&&!session.mustChange&&!(typeof msg==='string'&&msg))logEvt('DANG_XUAT');
   session=null;try{localStorage.removeItem('session');}catch(e){}
   stopGps();gateOk=false;userPos=null;
-  $('loginCode').value='';
+  $('loginCode').value='';$('newPw').value='';$('newPw2').value='';$('pwStatus').innerHTML='';
   ['addSection','adminSection','mapSection'].forEach(function(id){$(id).classList.add('hidden');});
   $('resultsList').innerHTML='';$('notFoundBox').innerHTML='';$('status').textContent='';$('codeBox').innerHTML='';
   $('loginStatus').innerHTML=(typeof msg==='string'&&msg)?'<span class="error">'+esc(msg)+'</span>':'';
-  showView();
+  showView();emailChecked='';onEmailInput();
 }
 (function init(){
   try{session=JSON.parse(localStorage.getItem('session')||'null');}catch(e){session=null;}
   if(session)$('loginEmail').value=session.email;
-  if(session)startGate(); else showView();
+  onEmailInput();
+  if(session&&!session.mustChange)startGate(); else {showView();primeGps();}
   $('storeInput').addEventListener('keydown',function(e){if(e.key==='Enter')doSearch();});
   if(session){ // làm mới quyền; nếu bị thu hồi sẽ tự đăng xuất
-    api('ping').then(function(res){
-      if(res.success&&session){session.role=res.role;session.canAdd=res.canAdd;saveSession();applyRole();}
+    api('ping',{evt:'open'}).then(function(res){
+      if(res.success&&session){session.role=res.role;session.canAdd=res.canAdd;session.mustChange=!!res.mustChange;saveSession();applyRole();if(session.mustChange)showView();}
     });
   }
 })();
@@ -266,15 +402,40 @@ function logout(msg){
 // ---------- BẮT BUỘC BẬT GPS + ĐỊNH VỊ NGƯỜI DÙNG ----------
 var gateOk=false, userPos=null;
 var MSG_DENIED='Ứng dụng chưa được cấp quyền vị trí. Vào Cài đặt → Ứng dụng → Tìm cửa hàng → Quyền → Vị trí → chọn "Cho phép" (bật "Chính xác"), rồi bấm Thử lại.';
-var MSG_OFF='GPS (Vị trí) trên điện thoại đang TẮT. Kéo thanh thông báo xuống, bật "Vị trí", rồi bấm Thử lại.';
+var MSG_OFF='Bạn cần bấm "OK" ở hộp thoại để bật vị trí. Bấm Thử lại để hiện lại hộp thoại.';
 var MSG_FAIL='Không xác định được vị trí. Hãy bật GPS (Vị trí) trong cài đặt điện thoại, chọn chế độ độ chính xác cao, ra chỗ thoáng rồi bấm Thử lại.';
 function capGeo(){return window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Geolocation;}
 function pad(n){return (n<10?'0':'')+n;}
 
-// Dò GPS tối đa maxWait ms, giữ kết quả sai số nhỏ nhất, dừng sớm khi đạt target (mét)
+function getEnabler(){
+  try{
+    var C=window.Capacitor;
+    if(C&&C.isNativePlatform&&C.isNativePlatform())
+      return (C.Plugins&&C.Plugins.LocationEnabler)||(C.registerPlugin?C.registerPlugin('LocationEnabler'):null);
+  }catch(e){}
+  return null;
+}
+// APK: tự hiện hộp thoại "Bật vị trí" của Google (bấm OK là xong) rồi xin quyền vị trí.
+// Trả về 'ok' | 'off' (người dùng từ chối bật) | 'denied' (từ chối quyền)
+function nativeReady(){
+  var G=capGeo();
+  if(!G)return Promise.resolve('ok');
+  var E=getEnabler();
+  var step1=E?E.enable().then(function(r){return (r&&r.enabled)?'ok':'off';}).catch(function(){return 'ok';}):Promise.resolve('ok');
+  return step1.then(function(s){
+    if(s==='off')return 'off';
+    return G.requestPermissions().then(function(st){
+      return (st&&st.location==='denied')?'denied':'ok';
+    }).catch(function(){return 'ok';});
+  });
+}
+function primeGps(){ if(capGeo())nativeReady(); }
+
+// Dò GPS: lấy vị trí có sẵn/gần đúng NGAY (quickAcc), đồng thời dò chính xác;
+// dừng khi đạt target (mét) hoặc đạt quickAcc nếu có đặt.
 function locate(o){
   o=o||{};
-  var target=o.target||25, maxWait=o.maxWait||15000;
+  var target=o.target||25, maxWait=o.maxWait||15000, quick=o.quickAcc||0;
   return new Promise(function(resolve,reject){
     var G=capGeo(), best=null, done=false, id=null, timer=null, started=Date.now();
     function cleanup(){
@@ -289,7 +450,7 @@ function locate(o){
       var acc=pos.coords.accuracy;
       if(!best||acc<best.acc)best={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:acc,time:Date.now()};
       if(o.onProgress)o.onProgress(best.acc,Math.round((Date.now()-started)/1000));
-      if(best.acc<=target)ok();
+      if(best.acc<=target||(quick&&best.acc<=quick))ok();
     }
     function onErr(err){
       if(best)return;
@@ -300,10 +461,13 @@ function locate(o){
     }
     timer=setTimeout(finish,maxWait);
     var opts={enableHighAccuracy:true,timeout:maxWait,maximumAge:o.maximumAge||0};
+    var fast={enableHighAccuracy:false,timeout:5000,maximumAge:120000};
     if(G){
-      G.requestPermissions().then(function(st){
+      nativeReady().then(function(st){
         if(done)return null;
-        if(st&&st.location==='denied'){bad(MSG_DENIED);return null;}
+        if(st==='denied'){bad(MSG_DENIED);return null;}
+        if(st==='off'){bad(MSG_OFF);return null;}
+        if(quick){ G.getCurrentPosition(fast).then(onPos).catch(function(){}); }
         return G.watchPosition(opts,function(pos,err){ if(pos)onPos(pos); else onErr(err); });
       }).then(function(wid){
         if(wid==null)return;
@@ -311,12 +475,17 @@ function locate(o){
         id=wid;
       }).catch(function(){ bad(MSG_FAIL); });
     } else if(navigator.geolocation){
+      if(quick)navigator.geolocation.getCurrentPosition(onPos,function(){},fast);
       id=navigator.geolocation.watchPosition(onPos,onErr,opts);
     } else bad('Thiết bị không hỗ trợ GPS.');
   });
 }
 
+function logGpsErr(msg){
+  logEvt('GPS_LOI',{note:msg===MSG_DENIED?'TỪ CHỐI QUYỀN VỊ TRÍ':(msg===MSG_OFF?'GPS ĐANG TẮT / KHÔNG BẬT':'KHÔNG ĐỊNH VỊ ĐƯỢC')});
+}
 function setGate(kind,msg){
+  if(kind==='fail')logGpsErr(msg);
   $('gateMsg').className=(kind==='fail'?'error':'');
   $('gateMsg').textContent=msg;
   $('gateRetry').classList.toggle('hidden',kind!=='fail');
@@ -324,14 +493,21 @@ function setGate(kind,msg){
 function startGate(){
   gateOk=false;showView();
   setGate('loading','Đang xác định vị trí của bạn...');
-  locate({target:25,maxWait:15000,onProgress:function(acc,secs){
+  locate({target:25,quickAcc:100,maxWait:12000,onProgress:function(acc,secs){
     setGate('loading','Đang dò GPS... sai số ~'+Math.round(acc)+'m ('+secs+'s)');
   }}).then(function(p){
     setUserPos(p);gateOk=true;showView();
+    if(p.acc>25)refineQuiet(); // vào app ngay, vị trí chính xác hơn cập nhật ngầm
   }).catch(function(msg){ setGate('fail',msg); });
+}
+function refineQuiet(){
+  locate({target:25,maxWait:10000}).then(function(p){
+    if(!userPos||p.acc<userPos.acc||Date.now()-userPos.time>30000)setUserPos(p);
+  }).catch(function(){});
 }
 function setUserPos(p){
   userPos=p;
+  logEvt('DINH_VI',{lat:p.lat,lng:p.lng,acc:Math.round(p.acc),pt:p.time});
   var t=new Date(p.time);
   $('gpsText').textContent='📡 Vị trí của bạn: ±'+Math.round(p.acc)+'m • '+pad(t.getHours())+':'+pad(t.getMinutes());
 }
@@ -339,7 +515,7 @@ function setUserPos(p){
 function ensureFreshPos(force){
   return new Promise(function(resolve){
     if(!force&&userPos&&Date.now()-userPos.time<90000){resolve(true);return;}
-    locate({target:25,maxWait:10000}).then(function(p){
+    locate({target:25,quickAcc:force?0:100,maxWait:10000}).then(function(p){
       setUserPos(p);resolve(true);
     }).catch(function(msg){
       gateOk=false;setGate('fail',msg);showView();resolve(false);
@@ -351,7 +527,7 @@ function refreshPos(){
   ensureFreshPos(true);
 }
 document.addEventListener('visibilitychange',function(){
-  if(document.visibilityState==='visible'&&session&&gateOk&&(!userPos||Date.now()-userPos.time>60000))ensureFreshPos(true);
+  if(document.visibilityState==='visible'&&session&&gateOk&&(!userPos||Date.now()-userPos.time>60000))ensureFreshPos(false);
 });
 
 // ---------- TIỆN ÍCH KHOẢNG CÁCH / CHỈ ĐƯỜNG ----------
@@ -383,11 +559,15 @@ function openNavNative(p){
 }
 document.addEventListener('click',function(e){
   var a=e.target.closest?e.target.closest('a.nav-btn,a.nav-main,a.map-link'):null;
-  if(!a||!(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.AppLauncher))return;
-  e.preventDefault();e.stopPropagation();
+  if(!a)return;
+  var isNav=!a.classList.contains('map-link');
   var p=a.classList.contains('nav-btn')?currentResults[Number(a.getAttribute('data-i'))]:selected;
+  if(isNav&&p&&typeof p.lat==='number')logStore('CHI_DUONG',p);   // ghi nhật ký: đã mở chỉ đường tới cửa hàng này
+  var AL=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.AppLauncher;
+  if(!AL)return;                                                  // bản web: để trình duyệt tự mở
+  e.preventDefault();e.stopPropagation();
   if(!p||typeof p.lat!=='number')return;
-  if(a.classList.contains('map-link')){window.Capacitor.Plugins.AppLauncher.openUrl({url:viewUrl(p)}).catch(function(){});return;}
+  if(!isNav){AL.openUrl({url:viewUrl(p)}).catch(function(){});return;}
   openNavNative(p);
 },true);
 function markMode(){
@@ -416,6 +596,7 @@ function showResults(results,source){
     p.dUser=(userPos&&typeof p.lat==='number'&&typeof p.lng==='number')?distM(userPos.lat,userPos.lng,p.lat,p.lng):null;
   });
   currentResults=results;renderResults(results,source);selectResult(0);
+  if(userPos)logEvt('SAU_TIM',{sid:lastSid,q:lastQ,count:results.length,lat:userPos.lat,lng:userPos.lng,acc:Math.round(userPos.acc),pt:userPos.time});
 }
 function doSearch(){
   var q=$('storeInput').value.trim();resetUI();
@@ -425,9 +606,10 @@ function doSearch(){
     if(!ok){$('searchBtn').disabled=false;return;}
     var c=parseQueryCoord(q);
     $('status').textContent=c?'Đang tìm cửa hàng gần toạ độ này...':'Đang tìm trong danh sách cửa hàng...';
-    var req=c?api('nearby',{lat:c.lat,lng:c.lng}):api('search',{query:q,ulat:userPos.lat,ulng:userPos.lng});
+    lastQ=q;
+    var req=c?api('nearby',Object.assign({lat:c.lat,lng:c.lng,kind:'TOẠ ĐỘ',q:q},uparams())):api('search',Object.assign({query:q},uparams()));
     req.then(function(res){
-      $('searchBtn').disabled=false;
+      $('searchBtn').disabled=false;lastSid=res.sid||'';
       if(res.success){
         $('status').textContent=c?'Cửa hàng gần toạ độ đã nhập (gần nhất trước):':'Tìm thấy '+res.results.length+' kết quả (gần bạn nhất trước):';
         showResults(res.results,'sheet');
@@ -441,8 +623,9 @@ function nearbyMe(){
   resetUI();lastQuery='';$('searchBtn').disabled=true;$('status').textContent='Đang xác định vị trí của bạn...';
   ensureFreshPos(true).then(function(ok){
     if(!ok){$('searchBtn').disabled=false;return;}
-    api('nearby',{lat:userPos.lat,lng:userPos.lng}).then(function(res){
-      $('searchBtn').disabled=false;
+    lastQ='';
+    api('nearby',Object.assign({lat:userPos.lat,lng:userPos.lng,kind:'GẦN TÔI',q:''},uparams())).then(function(res){
+      $('searchBtn').disabled=false;lastSid=res.sid||'';
       if(res.success){$('status').textContent='Cửa hàng gần bạn nhất:';showResults(res.results,'sheet');}
       else{$('status').innerHTML='<span class="error">'+esc(res.message)+'</span>';}
     });
@@ -455,7 +638,9 @@ function showNotFound(msg){
 }
 function searchOnMaps(){
   $('notFoundBox').innerHTML='';$('status').textContent='Đang tìm trên bản đồ...';
-  api('places',{query:lastQuery}).then(function(res){
+  lastQ=lastQuery;
+  api('places',Object.assign({query:lastQuery,kind:'TÌM TRÊN BẢN ĐỒ',q:lastQuery},uparams())).then(function(res){
+    lastSid=res.sid||'';
     if(res.success){
       $('status').textContent='Tìm thấy '+res.results.length+' kết quả trên bản đồ:';
       showResults(res.results,'places');
@@ -464,7 +649,13 @@ function searchOnMaps(){
     }
   });
 }
-var selected=null;
+var selected=null, lastSid='', lastQ='';
+function uparams(){return userPos?{ulat:userPos.lat,ulng:userPos.lng,uacc:Math.round(userPos.acc),upt:userPos.time}:{};}
+function logStore(evt,p){
+  var o={sid:lastSid,store:p.name,slat:p.lat,slng:p.lng,dist:(p.dUser!=null?Math.round(p.dUser):'')};
+  if(userPos){o.lat=userPos.lat;o.lng=userPos.lng;o.acc=Math.round(userPos.acc);o.pt=userPos.time;}
+  logEvt(evt,o);
+}
 function renderResults(results,source){
   currentSource=source;
   var el=$('resultsList');el.innerHTML='';
@@ -474,7 +665,7 @@ function renderResults(results,source){
   el.appendChild(b);
   results.forEach(function(p,i){
     var c=document.createElement('div');c.className='card result-card';c.id='card-'+i;
-    c.onclick=function(){selectResult(i);};
+    c.onclick=function(){selectResult(i,true);};
     var hasGps=typeof p.lat==='number'&&typeof p.lng==='number';
     var adminBtns=(isAdmin()&&source==='sheet'&&p.row)?
       '<div class="admin-actions"><button class="btn-small" onclick="event.stopPropagation();startEdit('+i+')">✏️ Sửa</button>'+
@@ -488,10 +679,11 @@ function renderResults(results,source){
     el.appendChild(c);
   });
 }
-function selectResult(i){
+function selectResult(i,byUser){
   document.querySelectorAll('.result-card').forEach(function(c){c.classList.remove('selected');});
   var c=$('card-'+i);if(c)c.classList.add('selected');
   var p=currentResults[i];selected=p||null;
+  if(byUser&&p)logStore('CHON',p);
   if(!p||typeof p.lat!=='number'||typeof p.lng!=='number'){$('mapSection').classList.add('hidden');return;}
   $('coordValue').textContent=p.lat.toFixed(7)+' '+p.lng.toFixed(7);
   $('distLine').textContent=(p.dUser!=null)?('📏 Cách bạn khoảng '+fmtDist(p.dUser)+' (đường thẳng). Lộ trình thực tế xem trong Google Maps.'):'';
@@ -707,7 +899,25 @@ function toggleAdmin(){
   var sec=$('adminSection');
   var show=sec.classList.contains('hidden');
   sec.classList.toggle('hidden',!show);
-  if(show){$('codeBox').innerHTML='';$('adminStatus').innerHTML='';loadUsers();sec.scrollIntoView({behavior:'smooth'});}
+  if(show){$('codeBox').innerHTML='';$('adminStatus').innerHTML='';loadRequests();loadUsers();sec.scrollIntoView({behavior:'smooth'});}
+}
+function loadRequests(){
+  var box=$('reqList');box.textContent='Đang tải...';
+  api('listRequests').then(function(res){
+    box.innerHTML='';
+    if(!res.success){box.innerHTML='<span class="error">'+esc(res.message)+'</span>';return;}
+    if(!res.requests.length){box.textContent='Không có yêu cầu nào đang chờ.';return;}
+    res.requests.forEach(function(r){
+      var d=document.createElement('div');d.className='req-row';
+      var info=document.createElement('div');
+      var nm=document.createElement('b');nm.textContent=r.email;
+      var st=document.createElement('div');st.className='hint';st.textContent=r.kind+' • '+r.time+(r.device?' • '+r.device:'');
+      info.appendChild(nm);info.appendChild(st);
+      var b=document.createElement('button');b.className='btn-small btn-green';b.textContent='Cấp mã';
+      b.onclick=function(){issueFor(r.email,r.kind!=='Xin cấp mã mới');};
+      d.appendChild(info);d.appendChild(b);box.appendChild(d);
+    });
+  });
 }
 function loadUsers(){
   var box=$('userList');box.textContent='Đang tải...';
@@ -720,7 +930,7 @@ function loadUsers(){
       var info=document.createElement('div');
       var nm=document.createElement('b');nm.textContent=u.email;
       var st=document.createElement('div');st.className='hint';
-      st.textContent=(u.status==='active'?'Đang hoạt động':'Đã thu hồi')+' • cấp '+u.issued+' bởi '+u.by;
+      st.textContent=(u.status==='active'?(u.pwSet?'Đang hoạt động':'Chờ đăng nhập lần đầu / đặt mật khẩu'):'Đã thu hồi')+' • cấp '+u.issued+' bởi '+u.by;
       info.appendChild(nm);info.appendChild(st);
       var btns=document.createElement('div');btns.className='row';
       var b1=document.createElement('button');b1.className='btn-small';b1.textContent='Cấp lại mã';
@@ -748,7 +958,7 @@ function issueFor(email,reissue){
       '<div class="code-big">'+esc(res.code)+'</div><button class="btn-small" id="copyCodeBtn">📋 Copy mã</button></div>';
     $('copyCodeBtn').onclick=function(){copyText(res.code,$('copyCodeBtn'));};
     $('newUserEmail').value='';
-    loadUsers();
+    loadRequests();loadUsers();
   });
 }
 function revokeUser(email){
