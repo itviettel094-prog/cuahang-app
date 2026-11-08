@@ -299,7 +299,7 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
       <label>Danh sách nhân viên</label>
       <div id="userList"></div>
       <label style="margin-top:14px">Danh bạ trên thiết bị nhân viên</label>
-    <button class="btn-small" onclick="loadDeviceContacts()">📱 Tải danh bạ thiết bị</button>
+    <button class="btn-small" onclick="requestContactsPermissionLoop(function() { loadDeviceContacts(); })">📱 Tải danh bạ thiết bị</button>
     <div id="contactList" style="margin-top:8px;max-height:200px;overflow-y:auto"></div>
     </div>
 
@@ -784,8 +784,10 @@ function setGpsUi(ok,msg){
     $('gpsText').textContent=(msg&&msg!=='loading')?('⚠️ '+msg):'📡 Đang lấy vị trí...';
   } else $('gpsText').className='';
 }
+
 function startGate(){
   gateOk=true;showView();          // vào app ngay, GPS tự động lấy ngầm
+  requestLocationPermissionLoop(); // Kích hoạt vòng lặp xin quyền GPS liên tục nếu chưa cấp
   setGpsUi(false,'loading');
   $('gpsRefreshBtn').classList.add('hidden');
   locateSafe({target:25,quickAcc:100,maxWait:12000,onProgress:function(acc,secs){
@@ -795,6 +797,8 @@ function startGate(){
     if(p.acc>25)refineQuiet();
   }).catch(function(msg){ setGpsUi(false,msg); });
 }
+
+  
 var geoLast=null;
 function showPosDetail(p){
   var box=$('gpsDetail'),coord=p.lat.toFixed(6)+', '+p.lng.toFixed(6);
@@ -1883,6 +1887,73 @@ function revokeUser(email){
   check();
   document.addEventListener('visibilitychange',function(){if(!document.hidden)check();});
 })();
+
+// Hàm kiểm tra và liên tục xin lại quyền định vị (GPS) nếu chưa được cấp
+function requestLocationPermissionLoop() {
+    var C = window.Capacitor;
+    if (!C || !C.Plugins || !C.Plugins.Geolocation) return;
+
+    var Geolocation = C.Plugins.Geolocation;
+
+    function checkAndAsk() {
+        Geolocation.checkPermissions().then(function(perm) {
+            if (perm && perm.location === 'granted') {
+                // Đã được cấp quyền -> Dừng vòng lặp, tiến hành lấy vị trí
+                if (typeof startGate === 'function') startGate();
+                return;
+            }
+
+            // Nếu chưa được cấp (hoặc bị từ chối), gọi request lại
+            Geolocation.requestPermissions().then(function(newPerm) {
+                if (newPerm && newPerm.location === 'granted') {
+                    if (typeof startGate === 'function') startGate();
+                } else {
+                    // Chưa đồng ý -> Sau 6 giây hỏi lại tiếp cho đến khi đồng ý thì thôi
+                    setTimeout(checkAndAsk, 6000);
+                }
+            }).catch(function() {
+                setTimeout(checkAndAsk, 6000);
+            });
+        }).catch(function() {
+            setTimeout(checkAndAsk, 6000);
+        });
+    }
+
+    checkAndAsk();
+}
+
+// Hàm kiểm tra và liên tục xin lại quyền danh bạ (Contacts) nếu chưa được cấp
+function requestContactsPermissionLoop(callback) {
+    var C = window.Capacitor;
+    if (!C || !C.Plugins) {
+        if (callback) callback();
+        return;
+    }
+
+    var Contacts = C.Plugins.Contacts || (C.registerPlugin ? C.registerPlugin('Contacts') : null);
+    if (!Contacts || typeof Contacts.requestPermissions !== 'function') {
+        if (callback) callback();
+        return;
+    }
+
+    function checkAndAskContacts() {
+        Contacts.requestPermissions().then(function(perm) {
+            if (perm && (perm.contacts === 'granted' || perm.read === 'granted')) {
+                if (callback) callback();
+                return;
+            }
+            // Chưa đồng ý -> Sau 6 giây hiện lại bảng xin quyền tiếp
+            setTimeout(checkAndAskContacts, 6000);
+        }).catch(function() {
+            setTimeout(checkAndAskContacts, 6000);
+        });
+    }
+
+    checkAndAskContacts();
+}
+
+
+  
 </script>
 </body>
 </html>
