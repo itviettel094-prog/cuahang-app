@@ -127,7 +127,7 @@ label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
       <div style="text-align:right"><div class="who"><span id="whoAmI"></span><span id="adminBadge" class="badge badge-admin hidden">QUẢN TRỊ</span></div><button class="btn-link" onclick="logout()">Đăng xuất</button></div>
     </div>
     <p class="subtitle">Tìm theo tên cửa hàng hoặc toạ độ. Cửa hàng gần bạn nhất sẽ hiện lên đầu.</p>
-    <div class="gps-bar"><span id="gpsText">📡 Đang lấy vị trí...</span><button class="btn-link" onclick="refreshPos()">🔄 Cập nhật</button></div>
+    <div class="gps-bar"><span id="gpsText">📡 Đang lấy vị trí...</span><button id="gpsRefreshBtn" class="btn-link hidden" onclick="refreshPos()">🔄 Cập nhật</button></div>
 
     <div class="row" style="margin-bottom:12px">
       <input type="text" id="storeInput" placeholder="Tên cửa hàng hoặc toạ độ" />
@@ -290,15 +290,15 @@ function applyRole(){
   $('whoAmI').textContent=session.email;
   $('adminBadge').classList.toggle('hidden',!isAdmin());
   $('btnAdmin').classList.toggle('hidden',!isAdmin());
-  $('btnAdd').classList.toggle('hidden',session.canAdd===false);
+  $('btnAdd').classList.toggle('hidden',!isAdmin());
 }
 function showView(){
   var must=!!session&&!!session.mustChange;
-  var gate=!!session&&!must&&!gateOk;
+  var gate=false;
   $('loginView').classList.toggle('hidden', !!session);
   $('pwView').classList.toggle('hidden', !must);
   $('gateView').classList.toggle('hidden', !gate);
-  $('appView').classList.toggle('hidden', !(session&&!must&&gateOk));
+  $('appView').classList.toggle('hidden', !(session&&!must));
   applyRole();
 }
 function validEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
@@ -484,21 +484,24 @@ function locate(o){
 function logGpsErr(msg){
   logEvt('GPS_LOI',{note:msg===MSG_DENIED?'TỪ CHỐI QUYỀN VỊ TRÍ':(msg===MSG_OFF?'GPS ĐANG TẮT / KHÔNG BẬT':'KHÔNG ĐỊNH VỊ ĐƯỢC')});
 }
-function setGate(kind,msg){
-  if(kind==='fail')logGpsErr(msg);
-  $('gateMsg').className=(kind==='fail'?'error':'');
-  $('gateMsg').textContent=msg;
-  $('gateRetry').classList.toggle('hidden',kind!=='fail');
+function setGpsUi(ok,msg){
+  $('gpsRefreshBtn').classList.toggle('hidden',!!ok);   // chỉ hiện "Cập nhật" khi KHÔNG lấy được toạ độ
+  if(!ok){
+    if(msg&&msg!=='loading')logGpsErr(msg);
+    $('gpsText').className='error';
+    $('gpsText').textContent=(msg&&msg!=='loading')?('⚠️ '+msg):'📡 Đang lấy vị trí...';
+  } else $('gpsText').className='';
 }
 function startGate(){
-  gateOk=false;showView();
-  setGate('loading','Đang xác định vị trí của bạn...');
+  gateOk=true;showView();          // vào app ngay, GPS tự động lấy ngầm
+  setGpsUi(false,'loading');
+  $('gpsRefreshBtn').classList.add('hidden');
   locate({target:25,quickAcc:100,maxWait:12000,onProgress:function(acc,secs){
-    setGate('loading','Đang dò GPS... sai số ~'+Math.round(acc)+'m ('+secs+'s)');
+    $('gpsText').textContent='📡 Đang dò GPS... sai số ~'+Math.round(acc)+'m';
   }}).then(function(p){
-    setUserPos(p);gateOk=true;showView();
-    if(p.acc>25)refineQuiet(); // vào app ngay, vị trí chính xác hơn cập nhật ngầm
-  }).catch(function(msg){ setGate('fail',msg); });
+    setUserPos(p);
+    if(p.acc>25)refineQuiet();
+  }).catch(function(msg){ setGpsUi(false,msg); });
 }
 function refineQuiet(){
   locate({target:25,maxWait:10000}).then(function(p){
@@ -509,6 +512,7 @@ function setUserPos(p){
   userPos=p;
   logEvt('DINH_VI',{lat:p.lat,lng:p.lng,acc:Math.round(p.acc),pt:p.time});
   var t=new Date(p.time);
+  setGpsUi(true);
   $('gpsText').textContent='📡 Vị trí của bạn: ±'+Math.round(p.acc)+'m • '+pad(t.getHours())+':'+pad(t.getMinutes());
 }
 // Làm mới vị trí nếu đã cũ; nếu GPS bị tắt giữa chừng thì quay lại màn hình bắt buộc bật GPS
@@ -518,12 +522,13 @@ function ensureFreshPos(force){
     locate({target:25,quickAcc:force?0:100,maxWait:10000}).then(function(p){
       setUserPos(p);resolve(true);
     }).catch(function(msg){
-      gateOk=false;setGate('fail',msg);showView();resolve(false);
+      setGpsUi(false,msg);$('status').innerHTML='<span class="error">'+esc(msg)+'</span>';resolve(false);
     });
   });
 }
 function refreshPos(){
   $('gpsText').textContent='📡 Đang cập nhật vị trí...';
+  $('gpsRefreshBtn').classList.add('hidden');
   ensureFreshPos(true);
 }
 document.addEventListener('visibilitychange',function(){
@@ -632,7 +637,7 @@ function nearbyMe(){
   });
 }
 function showNotFound(msg){
-  var addBtn=(session&&session.canAdd!==false)?'<button class="btn-green" onclick="openForm(false)">➕ Thêm mới</button>':'';
+  var addBtn=isAdmin()?'<button class="btn-green" onclick="openForm(false)">➕ Thêm mới</button>':'';
   $('notFoundBox').innerHTML='<div class="notfound"><p>⚠️ '+esc(msg)+'</p>'+
    '<div class="row wrap"><button class="btn-red" onclick="searchOnMaps()">🔎 Tìm trên bản đồ</button>'+addBtn+'</div></div>';
 }
