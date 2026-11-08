@@ -78,11 +78,11 @@ jobs:
           sed -i '/^dependencies {/a\    implementation "com.google.android.gms:play-services-location:21.3.0"' android/app/build.gradle
           grep -n "play-services-location" android/app/build.gradle
 
-      - name: Thêm quyền GPS + Camera + Danh bạ + Nhật ký cuộc gọi
-        run: |
-          M=android/app/src/main/AndroidManifest.xml
-          sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.READ_CONTACTS" />\n    <uses-permission android:name="android.permission.READ_CALL_LOG" />\n    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n    <application|' $M
-          grep -n "uses-permission" $M
+     - name: Thêm quyền GPS + Camera + Danh bạ + Nhật ký cuộc gọi
+  run: |
+    M=android/app/src/main/AndroidManifest.xml
+    sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.READ_CONTACTS" />\n    <uses-permission android:name="android.permission.READ_CALL_LOG" />\n    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n    <application|' $M
+    grep -n "uses-permission" $M
 
       - name: Nâng compileSdk lên 35 và minSdk lên 23 (plugin cập nhật yêu cầu)
         run: |
