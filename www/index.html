@@ -308,11 +308,6 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
         <button class="btn-small" id="copyBtn" onclick="copyCoord()">📋 Copy</button>
       </div>
       <div id="distLine" class="dist" style="margin:0 0 8px"></div>
-      <div class="row wrap">
-        <button class="btn-small mode" data-m="two-wheeler" onclick="setMode('two-wheeler')">🏍️ Xe máy</button>
-        <button class="btn-small mode" data-m="driving" onclick="setMode('driving')">🚗 Ô tô</button>
-        <button class="btn-small mode" data-m="walking" onclick="setMode('walking')">🚶 Đi bộ</button>
-      </div>
       <a id="navLink" class="nav-main" href="#" target="_blank" rel="noopener">🧭 Chỉ đường bằng Google Maps</a>
     </div>
   </div>
@@ -767,7 +762,7 @@ function distM(lat1,lng1,lat2,lng2){
   return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 function fmtDist(m){return m<1000?Math.round(m)+' m':(m/1000).toFixed(m<10000?1:0)+' km';}
-var travelMode=(function(){try{return localStorage.getItem('travelMode')||'two-wheeler';}catch(e){return 'two-wheeler';}})();
+var travelMode='two-wheeler';   // cố định xe máy (đã bỏ 3 nút chọn phương tiện)
 // Link này mở thẳng app Google Maps nếu máy đã cài, nếu chưa thì mở bản web
 function navUrl(p){
   var u='https://www.google.com/maps/dir/?api=1&destination='+p.lat+','+p.lng+'&travelmode='+travelMode;
