@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build APK + Web
 
 on:
   push:
@@ -7,9 +7,16 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  # ===== 1. Build file APK cho Android =====
+  apk:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -56,3 +63,18 @@ jobs:
           tag_name: build-${{ github.run_number }}
           name: Bản build ${{ github.run_number }}
           files: android/app/build/outputs/apk/debug/app-debug.apk
+
+  # ===== 2. Đăng bản web lên GitHub Pages (có link https) =====
+  web:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: www
+      - id: deploy
+        uses: actions/deploy-pages@v4
