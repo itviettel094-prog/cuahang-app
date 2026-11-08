@@ -84,6 +84,15 @@ jobs:
           sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n    <application|' $M
           grep -n "uses-permission" $M
 
+      - name: Nâng compileSdk lên 35 (plugin cập nhật yêu cầu)
+        run: |
+          V=android/variables.gradle
+          cat $V
+          sed -i 's/compileSdkVersion = [0-9]*/compileSdkVersion = 35/' $V
+          grep -q "android.suppressUnsupportedCompileSdk" android/gradle.properties || echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
+          grep -n "compileSdkVersion\|targetSdkVersion\|minSdkVersion" $V
+          tail -3 android/gradle.properties
+
       - name: Gắn địa chỉ cập nhật vào app
         run: |
           OWNER=$(echo "${GITHUB_REPOSITORY%%/*}" | tr 'A-Z' 'a-z')
@@ -124,9 +133,15 @@ jobs:
           chmod +x gradlew
           for i in 1 2 3; do
             echo "=== Lần build $i ==="
-            ./gradlew assembleDebug --no-daemon && exit 0
-            echo "Lỗi, chờ 45 giây rồi thử lại..."
-            sleep 45
+            ./gradlew assembleDebug --no-daemon 2>&1 | tee /tmp/build.log
+            [ "${PIPESTATUS[0]}" = "0" ] && exit 0
+            if grep -qiE "timed out|timeout|HTTP response code: 5|Connection reset|Could not GET|Could not resolve|Could not download|Read timed out" /tmp/build.log; then
+              echo "Lỗi mạng, chờ 45 giây rồi thử lại..."
+              sleep 45
+            else
+              echo "Lỗi cấu hình/biên dịch (không phải lỗi mạng), dừng ngay. Xem dòng 'What went wrong' ở trên."
+              exit 1
+            fi
           done
           echo "Build thất bại sau 3 lần thử"
           exit 1
