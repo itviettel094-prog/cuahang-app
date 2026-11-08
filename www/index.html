@@ -898,7 +898,7 @@ function submitStore(){
   var editing=(editRow!==null);
   var data={
     name:name,address:$('addAddress').value.trim(),link:$('addLink').value.trim(),
-    lat:c.lat,lng:c.lng,photoBase64:photoData,photoName:name+'_'+Date.now()
+    lat:c.lat,lng:c.lng,acc:(gpsAcc!==null?Math.round(gpsAcc):''),photoBase64:photoData,photoName:name+'_'+Date.now()
   };
   if(editing){data.row=editRow;data.expectName=editName;}
   $('saveBtn').disabled=true;addMsg('Đang lưu...');
