@@ -871,10 +871,6 @@ function showResults(results,source){
     p.dUser=(userPos&&typeof p.lat==='number'&&typeof p.lng==='number')?distM(userPos.lat,userPos.lng,p.lat,p.lng):null;
   });
   currentResults=results;renderResults(results,source);selectResult(0);
-  
-  // Hiển thị nút tìm Google Maps ở cuối danh sách kết quả nội bộ
-  showMapsSearchBtn();
-
   if(userPos)logEvt('SAU_TIM',{sid:lastSid,q:lastQ,count:results.length,lat:userPos.lat,lng:userPos.lng,acc:Math.round(userPos.acc),pt:userPos.time});
 }
 
@@ -1018,7 +1014,7 @@ function renderResults(results,source){
     var adminBtns=(isAdmin()&&source==='sheet'&&p.row)?
       '<div class="admin-actions"><button class="btn-small" onclick="event.stopPropagation();startEdit('+i+')">✏️ Sửa</button>'+
       '<button class="btn-small btn-red" onclick="event.stopPropagation();deleteStore('+i+')">🗑️ Xoá</button></div>':'';
-    c.innerHTML='<div class="result-name">'+esc(p.name)+'</div><div class="result-address">'+esc(p.address||'')+'</div>'+
+   c.innerHTML='<div class="result-name">'+esc(p.name)+'</div><div class="result-address">'+esc(p.address||'')+'</div>'+
       (p.dUser!=null?'<div class="dist">📏 Cách bạn ~'+fmtDist(p.dUser)+'</div>':'')+
       (p.photo?'<div style="margin-top:6px"><a href="'+esc(p.photo)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">🖼️ Xem ảnh cửa hàng</a></div>':'')+
       (!hasGps?'<div class="nogps">⚠️ Chưa có toạ độ GPS</div>':
@@ -1026,6 +1022,14 @@ function renderResults(results,source){
       adminBtns;
     el.appendChild(c);
   });
+
+  // Tự động chèn nút tìm Google Maps vào ngay sau thẻ kết quả cuối cùng
+  var btnBox = document.createElement('div');
+  btnBox.className = 'notfound';
+  btnBox.style.marginTop = '14px';
+  btnBox.innerHTML = '<p>Chưa thấy cửa hàng bạn cần? Mở Google Maps để tìm thêm.</p>' +
+    '<button class="btn-red" style="width:100%" onclick="openGroceryMaps()">🗺️ Tìm cửa hàng khác gần tôi trên Google Maps</button>';
+  el.appendChild(btnBox);
 }
 function selectResult(i,byUser){
   document.querySelectorAll('.result-card').forEach(function(c){c.classList.remove('selected');});
