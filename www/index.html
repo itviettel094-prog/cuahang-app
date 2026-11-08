@@ -1615,5 +1615,44 @@ function revokeUser(email){
   });
 }
 </script>
+<script>
+// ---------- CẬP NHẬT TỪ XA (Capgo Updater, tự lưu trữ trên GitHub Pages) ----------
+(function(){
+  var BASE='__UPDATE_BASE__',BUILD='__BUILD_VER__';   // workflow tự thay lúc build
+  if(BASE.indexOf('__')===0)return;                    // chạy local/chưa build: bỏ qua
+  var C=window.Capacitor;
+  if(!(C&&C.isNativePlatform&&C.isNativePlatform()&&C.registerPlugin))return;   // chỉ chạy trong app Android
+  var U;try{U=C.registerPlugin('CapacitorUpdater');}catch(e){return;}
+  try{U.notifyAppReady();}catch(e){}                   // bắt buộc, báo bản hiện tại chạy ổn (không thì plugin tự quay về bản cũ)
+  var busy=false,lastCheck=0;
+  function banner(b){
+    if(document.getElementById('updBar'))return;
+    var d=document.createElement('div');d.id='updBar';
+    d.style.cssText='position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:9999;background:#1b7a35;color:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.25)';
+    d.innerHTML='<span>Đã tải bản mới</span>';
+    var btn=document.createElement('button');btn.textContent='Cập nhật ngay';
+    btn.style.cssText='background:#fff;color:#1b7a35;padding:8px 12px;font-size:12px;border-radius:12px';
+    btn.onclick=function(){btn.disabled=true;btn.textContent='Đang cập nhật...';U.set({id:b.id}).catch(function(){btn.disabled=false;btn.textContent='Thử lại';});};
+    d.appendChild(btn);document.body.appendChild(d);
+  }
+  function check(){
+    if(busy||Date.now()-lastCheck<60000)return;
+    busy=true;lastCheck=Date.now();
+    fetch(BASE+'/version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json();}).then(function(v){
+      if(!v||!v.version||!v.file)throw 0;
+      return U.current().then(function(cur){
+        var cv=(cur&&cur.bundle&&cur.bundle.version)||'builtin';
+        var have=(cv==='builtin')?BUILD:cv;
+        if(v.version===have)return;
+        return U.download({url:BASE+'/'+v.file,version:v.version}).then(function(b){
+          return U.next({id:b.id}).then(function(){banner(b);});   // tự áp dụng ở lần mở app kế tiếp, hoặc bấm "Cập nhật ngay"
+        });
+      });
+    }).catch(function(){}).then(function(){busy=false;});
+  }
+  check();
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)check();});
+})();
+</script>
 </body>
 </html>
