@@ -179,14 +179,15 @@ textarea#impText{width:100%;padding:12px 14px;border:1px solid #dadce0;border-ra
     <!-- NHẬP FILE / LINK -->
     <div id="importSection" class="card hidden">
       <h3>📥 Nhập danh sách / link</h3>
-      <p class="hint" style="margin-top:0">Mỗi dòng là 1 tên cửa hàng, 1 link Google Maps hoặc 1 toạ độ. Dán trực tiếp hoặc chọn file .csv / .txt / .xlsx (lấy cột có tiêu đề "Tên" hoặc "Link", nếu không có thì lấy cột đầu tiên). Tối đa 200 dòng.</p>
-      <textarea id="impText" rows="5" placeholder="Thành Đạt&#10;https://maps.app.goo.gl/xxxxx&#10;20.925094 105.851222"></textarea>
+      <p class="hint" style="margin-top:0">Dán <b>link Google Sheets</b> hoặc chọn file .xlsx / .csv: app tự quét <b>tất cả các tab</b>, tìm cột "Tên điểm bán / Cửa hàng / Tạp hoá / Shop" rồi tìm từng tên (có đối chiếu thêm đường, phường, tỉnh). Cũng có thể dán trực tiếp mỗi dòng 1 tên, 1 link Google Maps hoặc 1 toạ độ. Tối đa 500 dòng mỗi lần.</p>
+      <textarea id="impText" rows="5" oninput="impQueue=null" placeholder="https://docs.google.com/spreadsheets/d/...&#10;hoặc: Thành Đạt&#10;https://maps.app.goo.gl/xxxxx&#10;20.925094 105.851222"></textarea>
       <input type="file" id="impFile" accept=".csv,.tsv,.txt,.xlsx,.xls" onchange="impLoadFile(this)" style="margin-top:8px" />
       <div class="row" style="margin-top:10px">
         <button id="impBtn" class="btn-green" style="flex:1" onclick="impRun()">🔎 Tìm tất cả</button>
         <button class="btn-small" onclick="impClear()">Xoá</button>
       </div>
-      <div id="impStatus" style="margin:10px 0;font-size:14px"></div>
+      <div id="impStatus" style="margin:10px 0 4px;font-size:14px"></div>
+      <div id="impInfo" class="hint" style="margin:0 0 10px"></div>
       <div id="impTools" class="hidden"><button id="impCopyBtn" class="btn-small" onclick="impCopy()">📋 Copy kết quả</button></div>
       <div id="impList"></div>
     </div>
@@ -1127,10 +1128,47 @@ function submitStore(){
 }
 
 // ---------- NHẬP FILE / LINK: TÌM HÀNG LOẠT ----------
-var impItems=[], impBusy=false, IMP_MAX=200, IMP_NEAR=50;
+var impItems=[], impBusy=false, impQueue=null, IMP_MAX=500, IMP_NEAR=50;
+var SHEET_RE=/docs\.google\.com\/spreadsheets\/d\/([A-Za-z0-9_-]+)/;
 function toggleImport(){var s=$('importSection');s.classList.toggle('hidden');if(!s.classList.contains('hidden'))s.scrollIntoView({behavior:'smooth'});}
 function impMsg(m,t){$('impStatus').innerHTML='<span class="'+(t||'')+'">'+esc(m)+'</span>';}
-function impClear(){if(impBusy)return;$('impText').value='';$('impFile').value='';$('impList').innerHTML='';$('impStatus').innerHTML='';$('impTools').classList.add('hidden');impItems=[];}
+function impClear(){if(impBusy)return;$('impText').value='';$('impFile').value='';$('impList').innerHTML='';$('impStatus').innerHTML='';$('impInfo').textContent='';$('impTools').classList.add('hidden');impItems=[];impQueue=null;}
+
+// --- chuẩn hoá chữ: bỏ dấu, chữ thường ---
+function impNorm(s){return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9]+/g,' ').trim();}
+// Chấm điểm tiêu đề cột: có phải cột TÊN CỬA HÀNG / ĐIỂM BÁN / TẠP HOÁ / SHOP không
+function impNameScore(h){
+  h=impNorm(h);if(!h)return 0;
+  if(/^(ma|so|stt|nguoi|ho ten|ho va ten|sdt|dien thoai|duong|phuong|xa|quan|huyen|thanh pho|tinh|loai|khu vuc|sup|asm|nvbh|npp|ghi chu|dia chi|toa do|ngay|trang thai)( |$)/.test(h))return 0;
+  if(h==='ten diem ban')return 100;
+  if(/^ten (cua hang|tap hoa|shop|dai ly|diem ban|cua tiem|tiem)/.test(h))return 95;
+  if(/(diem ban|cua hang|tap hoa|shop|store)/.test(h))return 80;
+  if(h==='ten'||h==='name'||h==='ten kh'||h==='ten khach hang')return 50;
+  return 0;
+}
+// Tìm dòng tiêu đề (trong 25 dòng đầu) + cột tên cửa hàng; lấy luôn mã điểm bán, đường, phường, quận, tỉnh để đối chiếu
+function impExtract(rows,sheetName){
+  var best=null,maxScan=Math.min(rows.length,25),r,c,row,sc;
+  for(r=0;r<maxScan;r++){
+    row=rows[r]||[];
+    for(c=0;c<row.length;c++){sc=impNameScore(row[c]);if(sc>0&&(!best||sc>best.sc))best={r:r,c:c,sc:sc};}
+  }
+  if(!best)return null;
+  var hdr=(rows[best.r]||[]).map(impNorm);
+  function find(re){for(var i=0;i<hdr.length;i++)if(re.test(hdr[i]))return i;return -1;}
+  var cCode=find(/^ma (diem ban|cua hang|kh|khach hang|shop)/),cStreet=find(/^(duong|dia chi|so nha)/),cWard=find(/^(phuong|xa)( |$)/),cDist=find(/^(quan|huyen)( |$)/),cCity=find(/^(thanh pho|tinh|tp)( |$)/);
+  function cell(row,i){return i<0?'':String(row[i]==null?'':row[i]).trim();}
+  var items=[],nameHdr=hdr[best.c];
+  for(r=best.r+1;r<rows.length;r++){
+    row=rows[r]||[];
+    var nm=cell(row,best.c);
+    if(!nm||impNorm(nm)===nameHdr)continue;
+    var addr=[cell(row,cStreet),cell(row,cWard),cell(row,cDist),cell(row,cCity)].filter(Boolean).join(', ');
+    var code=cell(row,cCode);
+    items.push({input:nm,addr:addr,info:(code?'Mã '+code:'')+(code&&addr?' • ':'')+addr,sheet:sheetName||''});
+  }
+  return items.length?{items:items,col:String(rows[best.r][best.c]).trim(),n:items.length}:null;
+}
 
 // --- đọc file ---
 function impParseCsv(text){
@@ -1150,64 +1188,115 @@ function impParseCsv(text){
   row.push(cur);rows.push(row);
   return rows;
 }
+// File không có tiêu đề nhận ra được (danh sách tên / link thuần): lấy cột đầu tiên
 function impPickCol(rows){
   rows=rows.filter(function(r){return r&&r.some(function(c){return String(c==null?'':c).trim()!=='';});});
-  if(!rows.length)return [];
-  var idx=-1;
-  rows[0].forEach(function(h,k){if(idx<0&&/^(tên|ten|name|cửa hàng|cua hang|link|url|toạ độ|toa do|tọa độ|vị trí)/i.test(String(h==null?'':h).trim()))idx=k;});
-  var start=idx>=0?1:0; if(idx<0)idx=0;
-  return rows.slice(start).map(function(r){return String(r[idx]==null?'':r[idx]).trim();}).filter(Boolean);
+  return rows.map(function(r){return String(r[0]==null?'':r[0]).trim();}).filter(Boolean);
 }
 function impLoadXlsx(){
   return new Promise(function(res,rej){
     if(window.XLSX)return res();
     var s=document.createElement('script');
     s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-    s.onload=function(){res();};s.onerror=function(){rej();};
+    s.onload=function(){res();};s.onerror=function(){rej(new Error('lib'));};
     document.head.appendChild(s);
   });
+}
+// Quét TẤT CẢ các tab trong file Excel, tab nào có cột tên cửa hàng thì lấy
+function impFromWorkbook(wb){
+  var all=[],log=[];
+  wb.SheetNames.forEach(function(n){
+    var rows=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:false,defval:''});
+    var ex=impExtract(rows,n);
+    if(ex){all=all.concat(ex.items);log.push('«'+n+'»: cột "'+ex.col+'" ('+ex.n+' dòng)');}
+  });
+  if(all.length)return {items:all,log:log,tabs:wb.SheetNames.length};
+  var rows0=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''});
+  return {items:impPickCol(rows0).map(function(s){return {input:s};}),log:[],tabs:wb.SheetNames.length,fallback:true};
+}
+function impStart(res){
+  var seen={},q=[];
+  res.items.forEach(function(x){var k=x.input+'|'+(x.addr||'');if(!seen[k]){seen[k]=1;q.push(x);}});
+  if(!q.length){impMsg('Không tìm thấy cột tên cửa hàng nào (Tên điểm bán, Cửa hàng, Tạp hoá, Shop...) trong file.','error');return;}
+  impQueue=q;
+  $('impText').value=q.map(function(x){return x.input;}).join('\n');
+  $('impInfo').textContent=res.fallback?'Không thấy cột "Tên điểm bán / Cửa hàng / Tạp hoá / Shop" nào, đã lấy cột đầu tiên.':('Đọc '+res.tabs+' tab, lấy tên cửa hàng ở '+res.log.length+' tab: '+res.log.join('; ')+'.');
+  impRun();   // đọc xong tự tìm luôn
+}
+function impParseBuffer(buf){
+  try{
+    var wb=XLSX.read(buf,{type:'array'});
+    impStart(impFromWorkbook(wb));
+  }catch(x){impMsg('Không đọc được file Excel. Hãy tải về dạng .xlsx hoặc .csv rồi thử lại.','error');}
 }
 function impLoadFile(inp){
   var f=inp.files&&inp.files[0];if(!f)return;
   var ext=(f.name.split('.').pop()||'').toLowerCase();
   impMsg('Đang đọc file...');
-  function got(rows){
-    var lines=impPickCol(rows);
-    if(!lines.length){impMsg('File không có dòng nào đọc được.','error');return;}
-    $('impText').value=lines.join('\n');
-    impRun();   // đọc xong tự tìm luôn
-  }
   var rd=new FileReader();
   if(ext==='xlsx'||ext==='xls'){
     impLoadXlsx().then(function(){
-      rd.onload=function(e){
-        try{
-          var wb=XLSX.read(e.target.result,{type:'array'});
-          got(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''}));
-        }catch(x){impMsg('Không đọc được file Excel. Hãy lưu thành .csv rồi thử lại.','error');}
-      };
+      rd.onload=function(e){impParseBuffer(e.target.result);};
       rd.readAsArrayBuffer(f);
     }).catch(function(){impMsg('Không tải được bộ đọc Excel (cần có mạng). Hãy lưu file thành .csv rồi thử lại.','error');});
     return;
   }
   rd.onload=function(e){
     var t=String(e.target.result);
-    got(ext==='txt'?t.split(/\r?\n/).map(function(l){return [l];}):impParseCsv(t));
+    var rows=ext==='txt'?t.split(/\r?\n/).map(function(l){return [l];}):impParseCsv(t);
+    var ex=impExtract(rows,'');
+    if(ex)impStart({items:ex.items,log:['cột "'+ex.col+'" ('+ex.n+' dòng)'],tabs:1});
+    else impStart({items:impPickCol(rows).map(function(s){return {input:s};}),log:[],tabs:1,fallback:true});
   };
   rd.onerror=function(){impMsg('Không đọc được file.','error');};
   rd.readAsText(f,'UTF-8');
 }
 
+// --- dán link Google Sheets: tải cả file về (mọi tab) rồi quét như file Excel ---
+function getHttp(){
+  try{var C=window.Capacitor;if(isNativeApp())return (C.Plugins&&C.Plugins.CapacitorHttp)||(C.registerPlugin?C.registerPlugin('CapacitorHttp'):null);}catch(e){}
+  return null;
+}
+function impFetchSheet(id){
+  var url='https://docs.google.com/spreadsheets/d/'+id+'/export?format=xlsx';
+  var H=getHttp();
+  if(H&&H.get){   // APK: gọi bằng native nên không bị chặn CORS
+    return H.get({url:url,responseType:'arraybuffer'}).then(function(r){
+      if(!r||r.status>=400)throw new Error('http');
+      var b=atob(String(r.data||'')),u=new Uint8Array(b.length),i;
+      for(i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
+      return u;
+    });
+  }
+  return fetch(url).then(function(r){if(!r.ok)throw new Error('http');return r.arrayBuffer();}).then(function(b){return new Uint8Array(b);});
+}
+function impLoadSheetLink(id){
+  impMsg('Đang tải Google Sheet...');
+  impLoadXlsx().then(function(){return impFetchSheet(id);}).then(function(u){
+    if(!(u&&u.length>4&&u[0]===0x50&&u[1]===0x4B))throw new Error('notxlsx');   // không phải file xlsx (thường là trang đăng nhập)
+    impParseBuffer(u);
+  }).catch(function(e){
+    if(e&&e.message==='lib'){impMsg('Không tải được bộ đọc Excel (cần có mạng).','error');return;}
+    impMsg('Không tải được Google Sheet từ link này. Hãy mở sheet, bấm Chia sẻ, chọn "Bất kỳ ai có đường liên kết" quyền Người xem, và dùng app APK (bản web bị Google chặn). Hoặc tải file về: Tệp > Tải xuống > Microsoft Excel (.xlsx), rồi chọn file ở ô bên dưới.','error');
+  });
+}
+
 // --- tìm từng dòng ---
 function impRun(){
   if(impBusy)return;
-  var seen={};
-  var lines=$('impText').value.split(/\r?\n/).map(function(s){return s.trim();}).filter(function(s){if(!s||seen[s])return false;seen[s]=1;return true;});
-  if(!lines.length){impMsg('Chưa có dòng nào để tìm.','error');return;}
-  var cut=lines.length>IMP_MAX;lines=lines.slice(0,IMP_MAX);
+  var queue=impQueue,cut=false;
+  if(!queue||!queue.length){
+    var seen={};
+    var lines=$('impText').value.split(/\r?\n/).map(function(s){return s.trim();}).filter(function(s){if(!s||seen[s])return false;seen[s]=1;return true;});
+    if(!lines.length){impMsg('Chưa có dòng nào để tìm.','error');return;}
+    if(lines.length===1&&SHEET_RE.test(lines[0])){impLoadSheetLink(lines[0].match(SHEET_RE)[1]);return;}
+    $('impInfo').textContent='';
+    queue=lines.map(function(s){return {input:s};});
+  }
+  if(queue.length>IMP_MAX){cut=true;queue=queue.slice(0,IMP_MAX);}
   impBusy=true;$('impBtn').disabled=true;$('impTools').classList.add('hidden');
   playSound('searching');
-  impItems=lines.map(function(s){return {input:s,state:'wait',matches:[]};});
+  impItems=queue.map(function(x){return {input:x.input,addr:x.addr||'',info:x.info||'',sheet:x.sheet||'',state:'wait',matches:[]};});
   impRender();
   impMsg('Đang cập nhật vị trí của bạn...');
   ensureFreshPos(false).then(function(ok){
@@ -1222,11 +1311,12 @@ function impRun(){
     }
     Promise.all([worker(),worker(),worker()]).then(function(){
       impBusy=false;$('impBtn').disabled=false;
-      var f=impItems.filter(function(x){return x.state==='ok'||x.state==='near';}).length;
-      impMsg('Xong: '+f+'/'+total+' dòng có trong danh sách, '+(total-f)+' dòng chưa thấy.'+(cut?' (Chỉ xử lý '+IMP_MAX+' dòng đầu.)':''),'ok');
-      playSound(f?'found':'error');
+      var a=0,b=0;
+      impItems.forEach(function(x){if(x.state==='ok')a++;else if(x.state==='near')b++;});
+      impMsg('Xong '+total+' dòng: '+a+' khớp chắc, '+b+' gần giống / cần kiểm tra, '+(total-a-b)+' chưa thấy.'+(cut?' (Chỉ xử lý '+IMP_MAX+' dòng đầu, hãy chia nhỏ file.)':''),'ok');
+      playSound(a+b?'found':'error');
       $('impTools').classList.remove('hidden');
-      logEvt('NHAP_FILE',{note:'Nhập '+total+' dòng, khớp '+f});
+      logEvt('NHAP_FILE',{note:'Nhập '+total+' dòng, khớp chắc '+a+', gần giống '+b});
     });
   });
 }
@@ -1265,17 +1355,46 @@ function impNear(it){
     else{it.state='none';it.nearest=list[0]||null;}
   });
 }
+// Đối chiếu địa chỉ trong file với địa chỉ cửa hàng trong sheet công ty
+function impAddrTokens(addr){
+  return impNorm(addr).split(' ').filter(function(w){return w.length>=3&&!/^(duong|pho|phuong|xa|quan|huyen|thanh|tinh|ngo|ngach|khu)$/.test(w);});
+}
+function impAddrScore(tokens,address){
+  if(!tokens.length||!address)return 0;
+  var a=' '+impNorm(address)+' ',n=0;
+  tokens.forEach(function(t){if(a.indexOf(' '+t+' ')>-1)n++;});
+  return n;
+}
+function impSearchName(q){return api('search',Object.assign({query:q},uparams()));}
 function impByName(it,name,fromLink){
-  return api('search',Object.assign({query:name},uparams())).then(function(res){
+  return impSearchName(name).then(function(res){
+    if(res&&res.success&&res.results&&res.results.length)return res;
+    // không thấy: thử lại bỏ chữ đứng đầu như "Tạp hoá", "Cửa hàng"...
+    var short=name.replace(/^(tạp hóa|tạp hoá|cửa hàng|cửa hiệu|quán|tiệm|shop|ch)\s+/i,'').trim();
+    if(short&&short!==name&&short.length>=2)return impSearchName(short);
+    return res;
+  }).then(function(res){
     if(!res||!res.success||!res.results||!res.results.length){if(!fromLink)it.state='none';return;}
-    var list=res.results;
-    list.forEach(function(p){
+    var list=res.results.slice(),qn=impNorm(name),at=impAddrTokens(it.addr);
+    list.forEach(function(p,i){
       p.dUser=(userPos&&typeof p.lat==='number'&&typeof p.lng==='number')?distM(userPos.lat,userPos.lng,p.lat,p.lng):null;
       if(it.lat!=null&&typeof p.lat==='number'&&typeof p.lng==='number')p.dRef=distM(it.lat,it.lng,p.lat,p.lng);
+      p._ex=(impNorm(p.name)===qn);
+      p._as=impAddrScore(at,p.address);
+      p._sc=(p._ex?3:0)+p._as;
+      p._i=i;
     });
+    list.sort(function(a,b){return (b._sc-a._sc)||(a._i-b._i);});   // trùng tên + trùng địa chỉ lên đầu
+    var top=list[0];
     it.matches=list;
-    it.state=fromLink?'near':'ok';
-    it.how=fromLink?'Trùng tên nhưng khác vị trí so với link':'Tìm theo tên';
+    if(fromLink){it.state='near';it.how='Trùng tên nhưng khác vị trí so với link';}
+    else if(top._ex||top._as>=2){
+      it.state='ok';
+      it.how=top._ex?(top._as>=2?'Trùng tên và địa chỉ':'Trùng tên'):'Tên gần giống, khớp địa chỉ';
+    } else {
+      it.state='near';
+      it.how='Tên gần giống, chưa chắc đúng, hãy kiểm tra';
+    }
   });
 }
 
@@ -1284,13 +1403,14 @@ function impRowHtml(it,i){
   var ic={wait:'⏳',ok:'✅',near:'🟡',none:'⚠️',err:'❌'}[it.state]||'⏳';
   var title=it.label||it.input;if(title.length>80)title=title.slice(0,77)+'…';
   var h='<div class="imp-row" id="imp-'+i+'"><div class="imp-in">'+ic+' '+esc(title)+'</div>';
+  if(it.info||it.sheet)h+='<div class="hint">📄 '+esc((it.sheet?it.sheet+' • ':'')+it.info)+'</div>';
   if(it.state==='wait'){
     h+='<div class="hint">Đang chờ...</div>';
   } else if(it.state==='ok'||it.state==='near'){
     var p=it.matches[0],more=it.matches.length-1;
     h+='<div class="imp-m"><b>'+esc(p.name)+'</b>'+(p.address?'<br>'+esc(p.address):'')+
       (p.dUser!=null?'<br><span class="ok">📏 Cách bạn ~'+fmtDist(p.dUser)+'</span>':'')+
-      '<br><span class="hint">'+esc(it.how||'')+(it.state==='near'&&p.dRef!=null?' (cách vị trí link ~'+fmtDist(p.dRef)+')':'')+(more>0?' • +'+more+' kết quả khác':'')+'</span></div>'+
+      '<br><span class="hint">'+esc(it.how||'')+(it.state==='near'&&it.type==='link'&&p.dRef!=null?' (cách vị trí link ~'+fmtDist(p.dRef)+')':'')+(more>0?' • +'+more+' kết quả khác':'')+'</span></div>'+
       '<div class="imp-btns"><button class="btn-small" onclick="impView('+i+')">👁️ Xem</button>'+
       (typeof p.lat==='number'?'<button class="btn-small" onclick="impNav('+i+')">🧭 Chỉ đường</button>':'')+'</div>';
   } else if(it.state==='none'){
@@ -1320,15 +1440,16 @@ function impAdd(i){
   var it=impItems[i];if(!it||!isAdmin())return;
   openForm(false);
   $('addName').value=it.label||(it.type==='name'?it.input:'');
+  if(it.addr)$('addAddress').value=it.addr;
   if(it.type==='link')$('addLink').value=it.input;
   if(it.lat!=null&&it.lng!=null)setCoord(it.lat,it.lng);
 }
 function impCopy(){
-  var st={ok:'Có',near:'Trùng tên, khác vị trí',none:'Không có',err:'Lỗi',wait:''};
-  var rows=['Đầu vào\tTrạng thái\tTên khớp\tĐịa chỉ\tToạ độ\tCách bạn (m)'];
+  var st={ok:'Khớp chắc',near:'Cần kiểm tra',none:'Không có',err:'Lỗi',wait:''};
+  var rows=['Tab\tĐầu vào\tThông tin trong file\tTrạng thái\tTên khớp\tĐịa chỉ trong sheet\tToạ độ\tCách bạn (m)'];
   impItems.forEach(function(it){
     var p=it.matches[0]||{};
-    rows.push([it.input,st[it.state]||'',p.name||'',p.address||'',(typeof p.lat==='number'?p.lat+' '+p.lng:''),(p.dUser!=null?Math.round(p.dUser):'')].map(function(v){return String(v).replace(/[\t\r\n]+/g,' ');}).join('\t'));
+    rows.push([it.sheet,it.input,it.info,st[it.state]||'',p.name||'',p.address||'',(typeof p.lat==='number'?p.lat+' '+p.lng:''),(p.dUser!=null?Math.round(p.dUser):'')].map(function(v){return String(v==null?'':v).replace(/[\t\r\n]+/g,' ');}).join('\t'));
   });
   copyText(rows.join('\n'),$('impCopyBtn'));
 }
