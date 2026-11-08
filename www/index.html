@@ -1720,12 +1720,16 @@ function loadDeviceContacts() {
         box.innerHTML = '<span class="error">Lỗi: ' + esc(err.message || err) + '</span>';
     });
 }
-```[cite: 9]
 
----
+function revokeUser(email){
+    if(!confirm('Thu hồi quyền của '+email+'? Họ sẽ bị đăng xuất khỏi app.'))return;
+    adminMsg('Đang thu hồi...');
+    api('revoke',{target:email},true).then(function(res){
+        if(!res.success){adminMsg(res.message,'error');return;}
+        adminMsg(res.message,'ok');$('codeBox').innerHTML='';loadUsers();
+    });
+}
 
-### Bước 2: Lưu lại và đẩy lên GitHub
-Sau khi cập nhật xong đoạn code trên vào file `index.html`, bạn hãy tiến hành lưu lại rồi `commit` và `push` lên nhánh `main` của kho chứa trên GitHub để hệ thống tự động build lại file APK mới[cite: 8, 9].
 
 
 
