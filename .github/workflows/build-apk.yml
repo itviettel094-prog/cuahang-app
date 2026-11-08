@@ -36,6 +36,15 @@ jobs:
       - name: Tạo dự án Android
         run: npx cap add android
 
+      - name: Thay icon app
+        run: |
+          R=android/app/src/main/res
+          find $R -name 'ic_launcher*.webp' -delete
+          cp -r app-icons/* $R/
+          rm -f $R/drawable-v24/ic_launcher_foreground.xml
+          rm -f $R/drawable/ic_launcher_background.xml
+          ls $R/mipmap-xxxhdpi
+
       - name: Thêm plugin tự bật GPS (hộp thoại Google)
         run: |
           D=android/app/src/main/java/com/cuahang/tim
