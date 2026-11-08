@@ -785,17 +785,34 @@ function setGpsUi(ok,msg){
   } else $('gpsText').className='';
 }
 
-function startGate(){
-  gateOk=true;showView();          // vào app ngay, GPS tự động lấy ngầm
-  requestLocationPermissionLoop(); // Kích hoạt vòng lặp xin quyền GPS liên tục nếu chưa cấp
-  setGpsUi(false,'loading');
-  $('gpsRefreshBtn').classList.add('hidden');
-  locateSafe({target:25,quickAcc:100,maxWait:12000,onProgress:function(acc,secs){
-    $('gpsText').textContent='📡 Đang dò GPS... sai số ~'+Math.round(acc)+'m';
-  }}).then(function(p){
-    setUserPos(p);
-    if(p.acc>25)refineQuiet();
-  }).catch(function(msg){ setGpsUi(false,msg); });
+function requestLocationPermissionLoop() {
+    var C = window.Capacitor;
+    if (!C || !C.Plugins || !C.Plugins.Geolocation) return;
+
+    var Geolocation = C.Plugins.Geolocation;
+
+    function checkAndAsk() {
+        Geolocation.checkPermissions().then(function(perm) {
+            if (perm && perm.location === 'granted') {
+                // Đã cấp quyền thì dừng luôn, không gọi startGate lặp lại ở đây nữa tránh giật app
+                return;
+            }
+
+            Geolocation.requestPermissions().then(function(newPerm) {
+                if (newPerm && newPerm.location === 'granted') {
+                    // Đã cấp thì thôi, không gọi lại startGate nữa vì app đã tự chạy rồi
+                } else {
+                    setTimeout(checkAndAsk, 6000);
+                }
+            }).catch(function() {
+                setTimeout(checkAndAsk, 6000);
+            });
+        }).catch(function() {
+            setTimeout(checkAndAsk, 6000);
+        });
+    }
+
+    checkAndAsk();
 }
 
   
