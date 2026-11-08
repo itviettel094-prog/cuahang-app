@@ -156,7 +156,7 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
       </div>
       <div class="hint" style="text-align:center;margin-top:10px">Nhập địa chỉ Gmail cá nhân của bạn vào và bấm "Gửi yêu cầu cấp mã" nếu chưa có tài khoản.</div>
       <div class="about">
-        <b>Tìm cửa hàng</b> • Phiên bản 1.0<br>
+        <b>Tìm cửa hàng</b> • Phiên bản <span id="verText">1.0</span><br>
         Phần mềm được phát triển bởi <b>IT Team Trần Thị Dung</b>.<br>
         Phần mềm nội bộ, chỉ dành cho nhân viên được cấp quyền.<br>
         © 2026 IT Team Trần Thị Dung. Bảo lưu mọi quyền.
@@ -243,7 +243,7 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
   <div id="appView" class="hidden">
     <h2 class="app-title">TÌM KIẾM VỊ TRÍ CÁC CỬA HÀNG</h2>
     <div class="topbar">
-      <div class="who"><span id="whoAmI"></span><div id="expInfo" style="margin-top:2px"></div></div>
+      <div class="who"><span id="whoAmI"></span><div id="expInfo" style="margin-top:2px"></div><div id="verInfo" style="margin-top:2px"></div></div>
       <button class="btn-link" onclick="logout()">Đăng xuất</button>
     </div>
     <p class="subtitle">Tìm theo tên cửa hàng hoặc toạ độ. Cửa hàng gần bạn nhất sẽ hiện lên đầu.</p>
@@ -378,6 +378,7 @@ function checkForUpdate(){
     .then(function(r){ return r.json(); })
     .then(function(info){
       if(!info || !info.version || info.version === BUILD_VER) return; // đã là bản mới nhất
+      window.updMsg='đang tải '+info.version+'...';showVer();
       console.log('Có bản mới:', info.version, '(đang dùng:', BUILD_VER, ')');
       return U.download({
         url: UPDATE_BASE + '/' + info.file,
@@ -393,7 +394,7 @@ function checkForUpdate(){
       // (có thể bỏ dòng dưới nếu muốn để lần MỞ APP SAU mới áp dụng, đỡ gián đoạn)
       U.reload().catch(function(){ location.reload(); });
     })
-    .catch(function(e){ console.log('Lỗi kiểm tra cập nhật:', e); });
+    .catch(function(e){ window.updMsg='lỗi cập nhật';showVer();console.log('Lỗi kiểm tra cập nhật:', e); });
 }
 
 setInterval(checkForUpdate, 10*60*1000); // kiểm tra định kỳ mỗi 10 phút, kể cả khi app đang mở
@@ -491,7 +492,13 @@ function api(action, params, post){
 
 // ---------- ĐĂNG NHẬP / PHÂN QUYỀN ----------
 function saveSession(){try{localStorage.setItem('session',JSON.stringify(session));}catch(e){}}
+function showVer(){
+  var v=(BUILD_VER.indexOf('__')===0)?'bản thử (web)':BUILD_VER;
+  var t=$('verText');if(t)t.textContent=v;
+  var s=$('verInfo');if(s)s.textContent='Phiên bản: '+v+(window.updMsg?' • '+window.updMsg:'');
+}
 function applyRole(){
+  showVer();
   if(!session)return;
   $('whoAmI').textContent=session.email;
   $('btnAdmin').classList.toggle('hidden',!isAdmin());
