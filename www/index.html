@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tìm cửa hàng</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Segoe UI',Roboto,Arial,sans-serif;margin:0;padding:16px;padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(24px + env(safe-area-inset-bottom));background:#f5f6f8;color:#202124}
+.container{max-width:640px;margin:0 auto}
+h2{margin:0 0 4px}h3{margin:0 0 4px}
+.subtitle{color:#5f6368;margin:0 0 16px;font-size:14px}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.who{font-size:12px;color:#5f6368}
+.hidden{display:none!important}
+input[type=text],input[type=email],input[type=password]{width:100%;padding:12px 14px;border:1px solid #dadce0;border-radius:8px;font-size:16px;background:#fff}
+input[type=file]{width:100%;font-size:14px}
+button{padding:12px 18px;border:none;border-radius:8px;background:#1a73e8;color:#fff;font-size:15px;cursor:pointer}
+button:active{opacity:.85}button:disabled{background:#9aa0a6}
+.btn-green{background:#34a853}.btn-red{background:#ea4335}
+.btn-small{padding:10px 12px;font-size:13px;background:#5f6368;white-space:nowrap}
+.btn-link{background:none;color:#1a73e8;padding:4px 8px;font-size:13px}
+.row{display:flex;gap:8px}
+.row>input{flex:1;min-width:0}
+.wrap{flex-wrap:wrap}
+.card{background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:14px;margin-bottom:12px}
+.result-card{cursor:pointer}
+.result-card.selected{border-color:#1a73e8;background:#f0f6ff}
+.result-name{font-weight:600;font-size:16px;margin-bottom:4px}
+.result-address{font-size:13px;color:#5f6368}
+.nogps{font-size:12px;color:#d93025;margin-top:4px}
+.badge{display:inline-block;font-size:12px;padding:3px 9px;border-radius:12px;margin:8px 0;font-weight:600}
+.badge-sheet{background:#e6f4ea;color:#188038}.badge-places{background:#e8f0fe;color:#1a73e8}
+#status{margin:10px 0;font-size:14px;color:#5f6368}
+.error{color:#d93025}.ok{color:#188038}
+.notfound{background:#fef7e0;border:1px solid #fdd663;border-radius:10px;padding:14px;margin:10px 0}
+.notfound p{margin:0 0 10px;font-size:14px;color:#5f4200}
+.coord-display{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:10px 14px;margin-bottom:10px}
+.coord-value{font-family:Consolas,'Courier New',monospace;font-weight:600}
+iframe{width:100%;height:320px;border:0;border-radius:10px}
+.map-link{display:inline-block;margin-top:10px;padding:10px 16px;background:#34a853;color:#fff;text-decoration:none;border-radius:8px;font-size:14px}
+label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
+.hint{font-size:12px;color:#5f6368;margin-top:4px}
+.suggest{padding:8px 10px;border:1px solid #e0e0e0;border-radius:6px;margin-top:6px;font-size:13px;cursor:pointer}
+#photoPreview{max-width:180px;max-height:140px;margin-top:8px;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ĐĂNG NHẬP -->
+  <div id="loginView" class="hidden">
+    <h2>🔐 Đăng nhập</h2>
+    <p class="subtitle">Nhập email của bạn và mã truy cập do quản trị viên cấp.</p>
+    <label>Email</label>
+    <input type="email" id="loginEmail" placeholder="ten@congty.com" autocapitalize="none" />
+    <label>Mã truy cập</label>
+    <input type="password" id="loginCode" placeholder="Mã truy cập" />
+    <div id="loginStatus" style="margin:12px 0;font-size:14px"></div>
+    <button id="loginBtn" onclick="doLogin()" style="width:100%">Đăng nhập</button>
+  </div>
+
+  <!-- ỨNG DỤNG -->
+  <div id="appView" class="hidden">
+    <div class="topbar">
+      <h2>🔍 Tìm cửa hàng</h2>
+      <div style="text-align:right"><div class="who" id="whoAmI"></div><button class="btn-link" onclick="logout()">Đăng xuất</button></div>
+    </div>
+    <p class="subtitle">Tìm trong danh sách cửa hàng. Nếu chưa có, tìm thêm trên bản đồ hoặc thêm mới.</p>
+
+    <div class="row" style="margin-bottom:12px">
+      <input type="text" id="storeInput" placeholder="VD: Thành Đạt" />
+      <button id="searchBtn" onclick="doSearch()">Tìm</button>
+    </div>
+    <button class="btn-green" style="width:100%;margin-bottom:14px" onclick="toggleAdd(true)">➕ Thêm cửa hàng mới</button>
+
+    <!-- FORM THÊM -->
+    <div id="addSection" class="card hidden">
+      <h3>➕ Thêm cửa hàng mới</h3>
+
+      <label>Tên cửa hàng *</label>
+      <input type="text" id="addName" placeholder="VD: Thành Đạt" />
+
+      <label>Địa chỉ</label>
+      <input type="text" id="addAddress" placeholder="Số nhà, đường, phường, quận" />
+
+      <label>Link Google Maps (chính xác nhất)</label>
+      <div class="row">
+        <input type="text" id="addLink" placeholder="Dán link chia sẻ từ Google Maps" />
+        <button class="btn-small" onclick="resolveLink()">Lấy toạ độ</button>
+      </div>
+      <div class="hint">Google Maps → tìm cửa hàng → Chia sẻ → Sao chép link → dán vào đây.</div>
+
+      <label>Toạ độ *</label>
+      <input type="text" id="addCoord" placeholder="VD: 20.925094 105.851222" inputmode="decimal" />
+      <div class="row wrap" style="margin-top:8px">
+        <button class="btn-small" onclick="getMyLocation()">📍 Vị trí của tôi</button>
+        <button class="btn-small" onclick="suggestPlaces()">🔎 Gợi ý từ bản đồ</button>
+      </div>
+      <div id="suggestList"></div>
+
+      <label>Ảnh cửa hàng</label>
+      <input type="file" id="addPhoto" accept="image/*" onchange="onPhoto(this)" />
+      <img id="photoPreview" class="hidden" />
+
+      <div id="addStatus" style="margin:12px 0;font-size:14px"></div>
+      <div class="row">
+        <button id="saveBtn" class="btn-green" style="flex:1" onclick="submitStore()">💾 Lưu cửa hàng</button>
+        <button class="btn-small" onclick="toggleAdd(false)">Huỷ</button>
+      </div>
+    </div>
+
+    <div id="status"></div>
+    <div id="notFoundBox"></div>
+    <div id="resultsList"></div>
+
+    <div id="mapSection" class="hidden">
+      <div class="coord-display">
+        <span>📍 <span class="coord-value" id="coordValue">-</span></span>
+        <button class="btn-small" id="copyBtn" onclick="copyCoord()">📋 Copy</button>
+      </div>
+      <iframe id="mapFrame" allowfullscreen loading="lazy"></iframe><br>
+      <a id="mapLink" class="map-link" href="#" target="_blank" rel="noopener">📍 Mở trong Google Maps</a>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+var API = (window.APP_CONFIG || {}).API_URL;
+var session = null, lastQuery = '', currentResults = [], photoData = null;
+function $(id){return document.getElementById(id);}
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
+
+// ---------- GỌI API ----------
+function api(action, params, post){
+  var base = {action:action, email:session?session.email:'', code:session?session.code:''};
+  var payload = Object.assign(base, params||{});
+  var req;
+  if(post){
+    // text/plain để tránh preflight CORS với Apps Script
+    req = fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
+  } else {
+    var qs = Object.keys(payload).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(payload[k]);}).join('&');
+    req = fetch(API+'?'+qs);
+  }
+  return req.then(function(r){return r.json();}).then(function(res){
+    if(res && res.authFail && session){ logout(res.message); }
+    return res;
+  }).catch(function(e){return {success:false,message:'Không kết nối được máy chủ. Kiểm tra mạng. ('+e.message+')'};});
+}
+
+// ---------- ĐĂNG NHẬP ----------
+function showView(){
+  $('loginView').classList.toggle('hidden', !!session);
+  $('appView').classList.toggle('hidden', !session);
+  if(session) $('whoAmI').textContent = session.email;
+}
+function doLogin(){
+  var email=$('loginEmail').value.trim().toLowerCase(), code=$('loginCode').value;
+  if(!email||!code){$('loginStatus').innerHTML='<span class="error">Nhập đủ email và mã truy cập.</span>';return;}
+  $('loginBtn').disabled=true;$('loginStatus').textContent='Đang kiểm tra...';
+  session={email:email,code:code};
+  api('ping').then(function(res){
+    $('loginBtn').disabled=false;
+    if(res.success){
+      try{localStorage.setItem('session',JSON.stringify(session));}catch(e){}
+      $('loginStatus').textContent='';showView();
+    } else {
+      session=null;
+      $('loginStatus').innerHTML='<span class="error">'+esc(res.message)+'</span>';
+    }
+  });
+}
+function logout(msg){
+  session=null;try{localStorage.removeItem('session');}catch(e){}
+  $('loginCode').value='';
+  $('loginStatus').innerHTML=(typeof msg==='string'&&msg)?'<span class="error">'+esc(msg)+'</span>':'';
+  showView();
+}
+(function init(){
+  try{session=JSON.parse(localStorage.getItem('session')||'null');}catch(e){session=null;}
+  if(session)$('loginEmail').value=session.email;
+  showView();
+  $('storeInput').addEventListener('keydown',function(e){if(e.key==='Enter')doSearch();});
+})();
+
+// ---------- TÌM KIẾM ----------
+function resetUI(){$('resultsList').innerHTML='';$('notFoundBox').innerHTML='';$('mapSection').classList.add('hidden');}
+function doSearch(){
+  var q=$('storeInput').value.trim();resetUI();
+  if(!q){$('status').innerHTML='<span class="error">Vui lòng nhập tên cửa hàng.</span>';return;}
+  lastQuery=q;$('status').textContent='Đang tìm trong danh sách cửa hàng...';$('searchBtn').disabled=true;
+  api('search',{query:q}).then(function(res){
+    $('searchBtn').disabled=false;
+    if(res.success){
+      $('status').textContent='Tìm thấy '+res.results.length+' kết quả:';
+      currentResults=res.results;renderResults(res.results,'sheet');selectResult(0);
+    } else {
+      $('status').textContent='';showNotFound(res.message);
+    }
+  });
+}
+function showNotFound(msg){
+  $('notFoundBox').innerHTML='<div class="notfound"><p>⚠️ '+esc(msg)+'</p>'+
+   '<div class="row wrap"><button class="btn-red" onclick="searchOnMaps()">🔎 Tìm trên bản đồ</button>'+
+   '<button class="btn-green" onclick="toggleAdd(true)">➕ Thêm mới</button></div></div>';
+}
+function searchOnMaps(){
+  $('notFoundBox').innerHTML='';$('status').textContent='Đang tìm trên bản đồ...';
+  api('places',{query:lastQuery}).then(function(res){
+    if(res.success){
+      $('status').textContent='Tìm thấy '+res.results.length+' kết quả trên bản đồ:';
+      currentResults=res.results;renderResults(res.results,'places');selectResult(0);
+    } else {
+      $('status').innerHTML='<span class="error">'+esc(res.message)+'</span>';
+    }
+  });
+}
+function renderResults(results,source){
+  var el=$('resultsList');el.innerHTML='';
+  var b=document.createElement('div');
+  b.className='badge '+(source==='sheet'?'badge-sheet':'badge-places');
+  b.textContent=source==='sheet'?'📋 Từ danh sách cửa hàng':'🌍 Từ bản đồ';
+  el.appendChild(b);
+  results.forEach(function(p,i){
+    var c=document.createElement('div');c.className='card result-card';c.id='card-'+i;
+    c.onclick=function(){selectResult(i);};
+    var hasGps=typeof p.lat==='number'&&typeof p.lng==='number';
+    c.innerHTML='<div class="result-name">'+esc(p.name)+'</div><div class="result-address">'+esc(p.address||'')+'</div>'+
+      (p.photo?'<div style="margin-top:6px"><a href="'+esc(p.photo)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">🖼️ Xem ảnh cửa hàng</a></div>':'')+
+      (!hasGps?'<div class="nogps">⚠️ Chưa có toạ độ GPS</div>':'');
+    el.appendChild(c);
+  });
+}
+function selectResult(i){
+  document.querySelectorAll('.result-card').forEach(function(c){c.classList.remove('selected');});
+  var c=$('card-'+i);if(c)c.classList.add('selected');
+  var p=currentResults[i];
+  if(!p||typeof p.lat!=='number'||typeof p.lng!=='number'){$('mapSection').classList.add('hidden');return;}
+  $('coordValue').textContent=p.lat.toFixed(7)+' '+p.lng.toFixed(7);
+  $('mapFrame').src='https://maps.google.com/maps?q='+p.lat+','+p.lng+'&z=16&output=embed';
+  $('mapLink').href='https://www.google.com/maps/search/?api=1&query='+p.lat+','+p.lng;
+  $('mapSection').classList.remove('hidden');
+}
+function copyCoord(){
+  var t=$('coordValue').textContent;if(!t||t==='-')return;
+  var btn=$('copyBtn'),old=btn.textContent;
+  function done(){btn.textContent='✅ Đã copy';setTimeout(function(){btn.textContent=old;},1500);}
+  function fb(){var a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(a);done();}
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done).catch(fb);else fb();
+}
+
+// ---------- THÊM MỚI ----------
+function toggleAdd(show){
+  $('addSection').classList.toggle('hidden',!show);
+  if(show){
+    $('notFoundBox').innerHTML='';
+    if(!$('addName').value)$('addName').value=$('storeInput').value.trim();
+    $('addSection').scrollIntoView({behavior:'smooth'});
+  }
+}
+function addMsg(msg,type){$('addStatus').innerHTML='<span class="'+(type||'')+'">'+esc(msg)+'</span>';}
+function setCoord(lat,lng){$('addCoord').value=Number(lat).toFixed(7)+' '+Number(lng).toFixed(7);}
+function readCoord(){
+  var p=$('addCoord').value.trim().replace(/,/g,' ').split(/\s+/).map(parseFloat);
+  if(p.length!==2||isNaN(p[0])||isNaN(p[1])||Math.abs(p[0])>90||Math.abs(p[1])>180)return null;
+  return {lat:p[0],lng:p[1]};
+}
+function resolveLink(){
+  var l=$('addLink').value.trim();
+  if(!l){addMsg('Hãy dán link Google Maps trước.','error');return;}
+  addMsg('Đang đọc link...');
+  api('resolve',{url:l}).then(function(res){
+    if(!res.success){addMsg(res.message,'error');return;}
+    setCoord(res.lat,res.lng);
+    if(!$('addName').value&&res.name){try{$('addName').value=decodeURIComponent(res.name);}catch(e){$('addName').value=res.name;}}
+    addMsg('✅ Đã lấy toạ độ từ link.','ok');
+  });
+}
+function getMyLocation(){
+  addMsg('Đang lấy vị trí GPS...');
+  var G=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Geolocation;
+  function ok(pos){setCoord(pos.coords.latitude,pos.coords.longitude);
+    addMsg('✅ Đã lấy vị trí (sai số ~'+Math.round(pos.coords.accuracy)+'m). Chỉ chính xác khi bạn đang đứng tại cửa hàng.','ok');}
+  function fail(){addMsg('Không lấy được GPS. Hãy bật định vị và cấp quyền, hoặc dùng link Google Maps.','error');}
+  if(G){
+    G.requestPermissions().then(function(){return G.getCurrentPosition({enableHighAccuracy:true,timeout:20000});}).then(ok).catch(fail);
+  } else if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(ok,fail,{enableHighAccuracy:true,timeout:20000,maximumAge:0});
+  } else fail();
+}
+function suggestPlaces(){
+  var n=$('addName').value.trim();
+  if(!n){addMsg('Nhập tên cửa hàng trước khi gợi ý.','error');return;}
+  addMsg('Đang tìm gợi ý...');
+  api('places',{query:n}).then(function(res){
+    var box=$('suggestList');box.innerHTML='';
+    if(!res.success){addMsg(res.message,'error');return;}
+    addMsg('Chọn 1 gợi ý (hãy kiểm tra lại độ chính xác):');
+    res.results.forEach(function(p){
+      var d=document.createElement('div');d.className='suggest';
+      d.innerHTML='<b>'+esc(p.name)+'</b><br>'+esc(p.address||'');
+      d.onclick=function(){
+        setCoord(p.lat,p.lng);
+        if(!$('addAddress').value)$('addAddress').value=p.address||'';
+        box.innerHTML='';addMsg('✅ Đã điền toạ độ từ gợi ý.','ok');
+      };
+      box.appendChild(d);
+    });
+  });
+}
+function onPhoto(input){
+  var f=input.files&&input.files[0];photoData=null;$('photoPreview').classList.add('hidden');
+  if(!f)return;
+  var rd=new FileReader();
+  rd.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var s=Math.min(1,1280/Math.max(img.width,img.height));
+      var c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      var url=c.toDataURL('image/jpeg',0.8);
+      photoData=url.split(',')[1];
+      $('photoPreview').src=url;$('photoPreview').classList.remove('hidden');
+    };
+    img.src=e.target.result;
+  };
+  rd.readAsDataURL(f);
+}
+function submitStore(){
+  var name=$('addName').value.trim(),c=readCoord();
+  if(!name){addMsg('Vui lòng nhập tên cửa hàng.','error');return;}
+  if(!c){addMsg('Toạ độ chưa hợp lệ. Dạng đúng: 20.925094 105.851222','error');return;}
+  $('saveBtn').disabled=true;addMsg('Đang lưu...');
+  api('add',{data:{
+    name:name,address:$('addAddress').value.trim(),link:$('addLink').value.trim(),
+    lat:c.lat,lng:c.lng,photoBase64:photoData,photoName:name+'_'+Date.now()
+  }},true).then(function(res){
+    $('saveBtn').disabled=false;
+    if(!res.success){addMsg(res.message,'error');return;}
+    addMsg('✅ '+res.message,'ok');
+    ['addName','addAddress','addLink','addCoord','addPhoto'].forEach(function(id){$(id).value='';});
+    $('photoPreview').classList.add('hidden');$('suggestList').innerHTML='';photoData=null;
+  });
+}
+</script>
+</body>
+</html>
