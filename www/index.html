@@ -396,6 +396,7 @@ function checkForUpdate(){
     .catch(function(e){ console.log('Lỗi kiểm tra cập nhật:', e); });
 }
 
+setInterval(checkForUpdate, 10*60*1000); // kiểm tra định kỳ mỗi 10 phút, kể cả khi app đang mở
 // Kiểm tra ngay khi mở app, và mỗi khi quay lại app từ nền
 checkForUpdate();
 document.addEventListener('visibilitychange', function(){
