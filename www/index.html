@@ -636,10 +636,10 @@ function locate(o){
     function cleanup(){
       clearTimeout(timer);
       try{ if(id!=null){ if(G)G.clearWatch({id:id}); else navigator.geolocation.clearWatch(id); } }catch(e){}
+      try{ if(lowWatch!=null)navigator.geolocation.clearWatch(lowWatch); }catch(e){}
     }
     function ok(){ if(done)return; done=true; cleanup(); resolve(best); }
     function bad(msg){ if(done)return; done=true; cleanup(); reject(msg); }
-    function finish(){ if(best)ok(); else bad(MSG_FAIL); }
     function onPos(pos){
       if(done||!pos||!pos.coords)return;
       var acc=pos.coords.accuracy;
@@ -647,12 +647,24 @@ function locate(o){
       if(o.onProgress)o.onProgress(best.acc,Math.round((Date.now()-started)/1000));
       if(best.acc<=target||(quick&&best.acc<=quick))ok();
     }
+    var lastErr=null, lowWatch=null;
     function onErr(err){
-      if(best)return;
+      if(best||done)return;
       var m=err&&String(err.message||'');
-      if(err&&(err.code===1||err.code==='PERMISSION_DENIED'))bad(MSG_DENIED);
-      else if(m&&/not enabled|disabled|turned off|location services/i.test(m))bad(MSG_OFF);
-      else bad(MSG_FAIL);
+      if(err&&(err.code===1||err.code==='PERMISSION_DENIED')){bad(MSG_DENIED);return;}
+      if(m&&/not enabled|disabled|turned off|location services/i.test(m)){bad(MSG_OFF);return;}
+      // Lỗi tạm thời (code 2 = không có vị trí, code 3 = quá hạn): KHÔNG báo lỗi ngay, vẫn chờ các luồng dò khác tới hết thời gian
+      lastErr=err||{};
+      startLowWatch();
+    }
+    // Laptop/PC không có chip GPS: chế độ "độ chính xác cao" hay lỗi/quá hạn -> chuyển sang dò bằng Wi-Fi/IP (độ chính xác thấp)
+    function startLowWatch(){
+      if(G||lowWatch!=null||done||!navigator.geolocation)return;
+      try{lowWatch=navigator.geolocation.watchPosition(onPos,function(e){lastErr=e||lastErr;},{enableHighAccuracy:false,timeout:Math.max(4000,maxWait-2000),maximumAge:600000});}catch(e){}
+    }
+    function finish(){
+      if(best){ok();return;}
+      if(lastErr&&(lastErr.code===1))bad(MSG_DENIED);else bad(MSG_FAIL);
     }
     timer=setTimeout(finish,maxWait);
     var opts={enableHighAccuracy:true,timeout:maxWait,maximumAge:o.maximumAge||0};
@@ -670,8 +682,9 @@ function locate(o){
         id=wid;
       }).catch(function(){ bad(MSG_FAIL); });
     } else if(navigator.geolocation){
-      if(quick)navigator.geolocation.getCurrentPosition(onPos,function(){},fast);
-      id=navigator.geolocation.watchPosition(onPos,onErr,opts);
+      // Web: luôn xin ngay 1 vị trí gần đúng (Wi-Fi/IP, cho phép dùng vị trí đã lưu 5 phút) song song với dò chính xác
+      navigator.geolocation.getCurrentPosition(onPos,function(e){ if(e&&e.code===1)onErr(e); else {lastErr=e||lastErr;startLowWatch();} },{enableHighAccuracy:false,timeout:8000,maximumAge:300000});
+      id=navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,timeout:Math.min(maxWait,10000),maximumAge:o.maximumAge||0});
     } else bad('Thiết bị không hỗ trợ GPS.');
   });
 }
