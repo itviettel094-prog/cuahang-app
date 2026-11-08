@@ -953,9 +953,11 @@ function openGroceryMaps(){
   AL.openUrl({url:geo}).then(function(r){if(!r||!r.completed)AL.openUrl({url:web}).catch(function(){});}).catch(function(){AL.openUrl({url:web}).catch(function(){});});
 }
 function showNotFound(msg){
-  var addBtn=isAdmin()?'<button class="btn-green" onclick="openForm(false)">➕ Thêm mới</button>':'';
-  $('notFoundBox').innerHTML='<div class="notfound"><p>⚠️ '+esc(msg)+'</p>'+
-   '<div class="row wrap"><button class="btn-red" onclick="searchOnMaps()">🔎 Tìm trên bản đồ</button>'+addBtn+'</div></div>';
+  var addBtn = isAdmin() ? '<button class="btn-green" onclick="openForm(false)">➕ Thêm mới</button>' : '';
+  $('notFoundBox').innerHTML = '<div class="notfound"><p>⚠️ ' + esc(msg) + '</p>' +
+   '<div class="row wrap">' +
+   '<button class="btn-red" onclick="searchOnMaps()">🔎 Tìm trên Google Maps</button>' +
+   addBtn + '</div></div>';
 }
 function searchOnMaps(){
   $('notFoundBox').innerHTML='';$('status').textContent='Đang tìm trên bản đồ...';
