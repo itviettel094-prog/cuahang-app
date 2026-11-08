@@ -54,6 +54,7 @@ label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
 .nav-main{display:block;text-align:center;padding:14px;background:#1a73e8;color:#fff;text-decoration:none;border-radius:10px;font-size:16px;font-weight:700;margin:10px 0}
 .dist{font-size:13px;color:#188038;margin-top:4px;font-weight:600}
 .mode.active{background:#1a73e8}
+.gps-detail{margin-top:3px;font-size:12px;color:#3c4043;line-height:1.4}.gps-detail b{font-family:Consolas,"Courier New",monospace;font-weight:600}
 .gps-bar{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#5f6368;margin-bottom:10px}
 .center{min-height:calc(100vh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:center}
 .login-card{width:100%;max-width:400px;background:#fff;border:1px solid #e0e0e0;border-radius:16px;padding:26px 22px;box-shadow:0 4px 18px rgba(0,0,0,.07);text-align:center}
@@ -127,7 +128,7 @@ label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
       <div style="text-align:right"><div class="who"><span id="whoAmI"></span><span id="adminBadge" class="badge badge-admin hidden">QUẢN TRỊ</span></div><button class="btn-link" onclick="logout()">Đăng xuất</button></div>
     </div>
     <p class="subtitle">Tìm theo tên cửa hàng hoặc toạ độ. Cửa hàng gần bạn nhất sẽ hiện lên đầu.</p>
-    <div class="gps-bar"><span id="gpsText">📡 Đang lấy vị trí...</span><button id="gpsRefreshBtn" class="btn-link hidden" onclick="refreshPos()">🔄 Cập nhật</button></div>
+    <div class="gps-bar"><div style="flex:1;min-width:0"><span id="gpsText">📡 Đang lấy vị trí...</span><div id="gpsDetail" class="gps-detail hidden"></div></div><button id="gpsRefreshBtn" class="btn-link hidden" onclick="refreshPos()">🔄 Cập nhật</button></div>
 
     <div class="row" style="margin-bottom:12px">
       <input type="text" id="storeInput" placeholder="Tên cửa hàng hoặc toạ độ" />
@@ -503,6 +504,22 @@ function startGate(){
     if(p.acc>25)refineQuiet();
   }).catch(function(msg){ setGpsUi(false,msg); });
 }
+var geoLast=null;
+function showPosDetail(p){
+  var box=$('gpsDetail'),coord=p.lat.toFixed(6)+', '+p.lng.toFixed(6);
+  box.classList.remove('hidden');
+  if(geoLast&&geoLast.addr&&distM(geoLast.lat,geoLast.lng,p.lat,p.lng)<40){
+    box.innerHTML='📍 <b>'+coord+'</b><br>🏠 '+esc(geoLast.addr);return;
+  }
+  box.innerHTML='📍 <b>'+coord+'</b><br>🏠 Đang tìm địa chỉ...';
+  api('revgeo',{lat:p.lat,lng:p.lng}).then(function(res){
+    if(userPos!==p)return;   // đã có vị trí mới hơn
+    if(res&&res.success&&res.address){
+      geoLast={lat:p.lat,lng:p.lng,addr:res.address};
+      box.innerHTML='📍 <b>'+coord+'</b><br>🏠 '+esc(res.address);
+    } else box.innerHTML='📍 <b>'+coord+'</b>';
+  });
+}
 function refineQuiet(){
   locate({target:25,maxWait:10000}).then(function(p){
     if(!userPos||p.acc<userPos.acc||Date.now()-userPos.time>30000)setUserPos(p);
@@ -513,6 +530,7 @@ function setUserPos(p){
   logEvt('DINH_VI',{lat:p.lat,lng:p.lng,acc:Math.round(p.acc),pt:p.time});
   var t=new Date(p.time);
   setGpsUi(true);
+  showPosDetail(p);
   $('gpsText').textContent='📡 Vị trí của bạn: ±'+Math.round(p.acc)+'m • '+pad(t.getHours())+':'+pad(t.getMinutes());
 }
 // Làm mới vị trí nếu đã cũ; nếu GPS bị tắt giữa chừng thì quay lại màn hình bắt buộc bật GPS
