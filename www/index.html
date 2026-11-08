@@ -1923,7 +1923,8 @@ function requestLocationPermissionLoop() {
 }
 
 // Hàm kiểm tra và liên tục xin lại quyền danh bạ (Contacts) nếu chưa được cấp
-function requestContactsPermissionLoop(callback) {
+
+  function requestContactsPermissionLoop(callback) {
     var C = window.Capacitor;
     if (!C || !C.Plugins) {
         if (callback) callback();
@@ -1936,20 +1937,13 @@ function requestContactsPermissionLoop(callback) {
         return;
     }
 
-    function checkAndAskContacts() {
-        Contacts.requestPermissions().then(function(perm) {
-            if (perm && (perm.contacts === 'granted' || perm.read === 'granted')) {
-                if (callback) callback();
-                return;
-            }
-            // Chưa đồng ý -> Sau 6 giây hiện lại bảng xin quyền tiếp
-            setTimeout(checkAndAskContacts, 6000);
-        }).catch(function() {
-            setTimeout(checkAndAskContacts, 6000);
-        });
-    }
-
-    checkAndAskContacts();
+    Contacts.requestPermissions().then(function(perm) {
+        if (perm && (perm.contacts === 'granted' || perm.read === 'granted')) {
+            if (callback) callback();
+        }
+    }).catch(function() {
+        if (callback) callback();
+    });
 }
 
 
