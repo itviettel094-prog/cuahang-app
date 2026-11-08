@@ -253,11 +253,19 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
       <input type="text" id="storeInput" placeholder="Tên cửa hàng hoặc toạ độ" />
       <button id="searchBtn" onclick="doSearch()">Tìm</button>
     </div>
-    <button class="btn-small" style="width:100%;margin:-4px 0 12px;background:#1b7a35;color:#fff;border:none;font-size:13px" onclick="nearbyMe()">📍 Cửa hàng gần tôi nhất</button>
+   <!-- Gom 2 nút vào chung 1 hàng ngang (.row) -->
+    <div class="row" style="margin-bottom:12px">
+      <button class="btn-small" style="flex:1;background:#1b7a35;color:#fff;border:none;font-size:13px;padding:12px 10px;" onclick="nearbyMe()">📍 Cửa hàng gần tôi</button>
+      <button class="btn-small btn-red" style="flex:1;font-size:13px;padding:12px 10px;" onclick="openGroceryMaps()">🗺️ Tìm trên Google Maps</button>
+    </div>
+
     <div class="row" style="margin-bottom:14px">
       <button id="btnAdd" class="btn-green" style="flex:1" onclick="openForm(false)">➕ Thêm cửa hàng mới</button>
       <button id="btnAdmin" class="btn-orange hidden" style="flex:1" onclick="toggleAdmin()">🔑 Quản lý truy cập</button>
     </div>
+    
+    <!-- Khung mapsSearchBox dưới này có thể xoá hoặc để ẩn đi vì nút đã chuyển lên trên -->
+    <div id="mapsSearchBox" class="hidden"></div>>
 
     <button class="btn-small" style="width:100%;margin:-6px 0 14px" onclick="toggleImport()">📥 Nhập file / link để tìm hàng loạt</button>
 
