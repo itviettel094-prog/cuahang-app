@@ -39,8 +39,10 @@ jobs:
           if [ -n "$JAVA_HOME_17_X64" ]; then echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV; fi
           java -version
 
-      - name: Cài thư viện
-        run: npm install
+     - name: Cài thư viện
+        run: |
+          npm install
+          npm install @capacitor-community/contacts
 
       - name: Cài plugin cập nhật từ xa (Capgo Updater)
         run: |
