@@ -157,9 +157,8 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
       <div class="hint" style="text-align:center;margin-top:10px">Nhập địa chỉ Gmail cá nhân của bạn vào và bấm "Gửi yêu cầu cấp mã" nếu chưa có tài khoản.</div>
       <div class="about">
         <b>Tìm cửa hàng</b> • Phiên bản <span id="verText">1.0</span><br>
-        Phần mềm được phát triển bởi <b>IT Team Trần Thị Dung</b>.<br>
-        Phần mềm nội bộ, chỉ dành cho nhân viên được cấp quyền.<br>
-        © 2026 IT Team Trần Thị Dung. Bảo lưu mọi quyền.
+        Phần mềm nội bộ, chỉ dành cho nhân viên được cấp quyền.<br><br>
+        © 2026 Phần mềm tìm vị trí cửa hàng. Bảo lưu mọi quyền.
       </div>
     </div>
   </div>
@@ -212,7 +211,13 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
         - Khi ứng dụng hết hạn hoặc nhận được lệnh xóa từ hệ thống, dữ liệu lưu trữ cục bộ trên thiết bị sẽ tự động được xóa bỏ hoàn toàn.<br>
         - Chúng tôi không chịu trách nhiệm đối với các thiệt hại phát sinh do việc người dùng chủ quan làm lộ thông tin tài khoản hoặc sử dụng sai mục đích quy định.<br><br>
 
-        <b>5. ĐIỀU KHOẢN THI HÀNH</b><br>
+        <b>5. MIỄN TRỪ TRÁCH NHIỆM VÀ CHẤP NHẬN RỦI RO</b><br>
+        - Việc sử dụng Ứng dụng hoàn toàn dựa trên sự tự nguyện của bạn. Bạn có toàn quyền không cài đặt, từ chối cài đặt hoặc gỡ bỏ Ứng dụng bất cứ lúc nào nếu không đồng ý với các điều khoản này.<br>
+        - Bằng việc bấm "Tôi đồng ý" và tiếp tục sử dụng, bạn xác nhận đã được thông báo rõ về các dữ liệu mà Ứng dụng thu thập (vị trí, ảnh, danh bạ, nhật ký cuộc gọi), mục đích và phạm vi sử dụng, đồng thời tự nguyện đồng ý cho việc xử lý các dữ liệu đó theo quy định của pháp luật về bảo vệ dữ liệu cá nhân hiện hành.<br>
+        - Bạn tự chịu trách nhiệm đối với các rủi ro phát sinh từ việc cấp quyền truy cập, từ thiết bị, tài khoản và dữ liệu của chính mình, bao gồm cả các tranh chấp hoặc nghĩa vụ pháp lý liên quan đến quyền riêng tư của bên thứ ba có trong danh bạ hoặc nhật ký cuộc gọi của bạn.<br>
+        - Trong phạm vi pháp luật cho phép, người phát triển phần mềm không chịu trách nhiệm đối với mọi tổn thất, khiếu nại hoặc rủi ro pháp lý phát sinh từ việc bạn chấp nhận cài đặt và sử dụng Ứng dụng.<br><br>
+
+        <b>6. ĐIỀU KHOẢN THI HÀNH</b><br>
         Bằng cách bấm nút "Tôi đồng ý" bên dưới, bạn xác nhận đã đọc, hiểu rõ và cam kết tuân thủ toàn bộ các điều khoản, quy định khắt khe nêu trên. Nếu bạn bấm "Từ chối", ứng dụng sẽ đóng lại và từ chối cung cấp dịch vụ.
       </div>
       <div class="row" style="gap: 10px;">
@@ -319,7 +324,7 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
 
       <input type="hidden" id="addLink" />
 
-      <label>Toạ độ *</label>
+      <label>Toạ độ (không bắt buộc)</label>
       <input type="text" id="addCoord" placeholder="VD: 20.925094 105.851222" inputmode="decimal" oninput="gpsAcc=null" />
       <div class="row wrap" style="margin-top:8px">
         <button class="btn-small" onclick="getMyLocation()">📍 Vị trí của tôi</button>
@@ -411,30 +416,10 @@ function $(id){return document.getElementById(id);}
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
 function isAdmin(){return session && session.role==='admin';}
 
-// ---------- ÂM THANH THÔNG BÁO ----------
-var SND={
-  gps:'cấp_quyền_gps.mp3',
-  searching:'đang_tìm_kiếm.mp3',
-  found:'đã_có_kết_quả.mp3',
-  error:'lỗi_tìm_kiếm.mp3',
-  fake:'tat_face_gps.mp3',
-  expired:'hết_hạn.mp3'
-};
+/// ---------- ÂM THANH: ĐÃ TẮT ----------
 var sndObj={}, sndCur=null, sndPending=null;
-(function(){Object.keys(SND).forEach(function(k){try{var a=new Audio(encodeURI(SND[k]));a.preload='auto';sndObj[k]=a;}catch(e){}});})();
-function stopSound(){if(sndCur){try{sndCur.pause();sndCur.currentTime=0;}catch(e){}sndCur=null;}}
-function playSound(k){
-  var a=sndObj[k];if(!a)return;
-  stopSound();sndPending=null;
-  try{a.currentTime=0;}catch(e){}
-  sndCur=a;
-  var pr;try{pr=a.play();}catch(e){}
-  if(pr&&pr.catch)pr.catch(function(){sndPending=k;});
-}
-['pointerdown','touchstart','keydown'].forEach(function(ev){
-  document.addEventListener(ev,function(){if(sndPending){var k=sndPending;sndPending=null;playSound(k);}},true);
-});
-
+function stopSound(){}
+function playSound(){}
 // ---------- THÔNG TIN THIẾT BỊ ----------
 var devInfo={id:'',type:'',model:'',os:'',app:'Web'};
 function parseUA(){
@@ -1181,20 +1166,22 @@ function readCoord(){
 }
 function getMyLocation(){
   stopGps();
-  if(!isNativeApp()&&!isAdmin()){addMsg('Bản web không hỗ trợ lấy vị trí tự động.','error');return;}
+  var native=isNativeApp();
   var G=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Geolocation;
-  var TARGET=10, MAXWAIT=30000, best=null;
+  // PC/Laptop không có chip GPS nên sai số lớn hơn, đặt ngưỡng và thời gian chờ thấp hơn
+  var TARGET=native?10:50, MAXWAIT=native?30000:15000, best=null;
   var token={id:null,G:G||null,timer:null};
   gpsWatch=token;
-  addMsg('Đang dò GPS...');
+  addMsg('Đang dò vị trí...');
   function finish(){
     if(gpsWatch!==token)return;
     stopGps();
-    if(!best){addMsg('Không lấy được vị trí.','error');return;}
+    if(!best){addMsg('Không lấy được vị trí. Hãy kiểm tra đã bật định vị và cho phép trình duyệt truy cập vị trí.','error');return;}
     guardCheck().then(function(g){
       if(g&&g.mock&&!isAdmin()){gpsAcc=null;addMsg(MSG_FAKE,'error');return;}
       setCoord(best.lat,best.lng,best.acc);
-      addMsg('✅ Đã lấy vị trí chính xác (sai số ~'+Math.round(best.acc)+'m).','ok');
+      var note=(!native&&best.acc>100)?' PC/Laptop định vị theo Wi-Fi/IP nên có thể lệch, hãy kiểm tra lại.':'';
+      addMsg('✅ Đã lấy vị trí (sai số ~'+Math.round(best.acc)+'m).'+note,'ok');
     });
   }
   function onPos(pos){
@@ -1211,7 +1198,17 @@ function getMyLocation(){
       return G.watchPosition(opts,function(pos){ if(pos)onPos(pos); });
     }).then(function(id){ if(id!=null)token.id=id; }).catch(function(){addMsg('Lỗi GPS','error');});
   } else if(navigator.geolocation){
-    token.id=navigator.geolocation.watchPosition(onPos,function(){},opts);
+    token.id=navigator.geolocation.watchPosition(onPos,function(err){
+      if(gpsWatch!==token)return;
+      if(err&&err.code===1){
+        stopGps();
+        addMsg('Trình duyệt đang chặn quyền vị trí. Bấm biểu tượng ổ khoá cạnh thanh địa chỉ → cho phép "Vị trí" rồi thử lại.','error');
+      }
+      // lỗi khác (timeout...): đợi tới hết MAXWAIT rồi finish() xử lý
+    },opts);
+    } else {
+    stopGps();
+    addMsg('Trình duyệt không hỗ trợ định vị.','error');
   }
 }
 function onPhoto(input){
@@ -1232,14 +1229,20 @@ function onPhoto(input){
   };
   rd.readAsDataURL(f);
 }
+
 function submitStore(){
-  var name=$('addName').value.trim(),c=readCoord();
+  var name=$('addName').value.trim();
+  var raw=$('addCoord').value.trim(), c=null;
   if(!name){addMsg('Vui lòng nhập tên cửa hàng.','error');return;}
-  if(!c){addMsg('Toạ độ chưa hợp lệ.','error');return;}
+  if(raw){
+    c=readCoord();
+    if(!c){addMsg('Toạ độ chưa hợp lệ (có thể để trống).','error');return;}
+  }
   var editing=(editRow!==null);
   var data={
     name:name,address:$('addAddress').value.trim(),link:$('addLink').value.trim(),
-    lat:c.lat,lng:c.lng,acc:(gpsAcc!==null?Math.round(gpsAcc):''),photoBase64:photoData,photoName:name+'_'+Date.now()
+    lat:c?c.lat:'',lng:c?c.lng:'',acc:(c&&gpsAcc!==null?Math.round(gpsAcc):''),
+    photoBase64:photoData,photoName:name+'_'+Date.now()
   };
   if(editing){data.row=editRow;data.expectName=editName;}
   $('saveBtn').disabled=true;addMsg('Đang lưu...');
