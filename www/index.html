@@ -167,12 +167,7 @@ label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
       <label>Địa chỉ</label>
       <input type="text" id="addAddress" placeholder="Số nhà, đường, phường, quận" />
 
-      <label>Link Google Maps (chính xác nhất)</label>
-      <div class="row">
-        <input type="text" id="addLink" placeholder="Dán link chia sẻ từ Google Maps" />
-        <button class="btn-small" onclick="resolveLink()">Lấy toạ độ</button>
-      </div>
-      <div class="hint">Google Maps → tìm cửa hàng → Chia sẻ → Sao chép link → dán vào đây.</div>
+      <input type="hidden" id="addLink" />
 
       <label>Toạ độ *</label>
       <input type="text" id="addCoord" placeholder="VD: 20.925094 105.851222" inputmode="decimal" oninput="gpsAcc=null" />
@@ -829,7 +824,7 @@ function stopGps(){
 }
 function getMyLocation(){
   stopGps();
-  if(!isNativeApp()){addMsg('Bản web không chống được GPS giả nên không cho lấy vị trí máy để thêm cửa hàng. Hãy dùng app APK, hoặc dán link Google Maps rồi bấm "Lấy toạ độ".','error');return;}
+  if(!isNativeApp()){addMsg('Bản web không chống được GPS giả nên không cho lấy vị trí máy để thêm cửa hàng. Hãy dùng app APK, hoặc bấm "Gợi ý từ bản đồ" / nhập toạ độ tay.','error');return;}
   var G=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Geolocation;
   var TARGET=10, MAXWAIT=30000, best=null;
   var token={id:null,G:G||null,timer:null};
