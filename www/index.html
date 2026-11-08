@@ -901,6 +901,8 @@ function doSearch(){
     });
   });
 }
+
+
 function nearbyMe(){
   playSound('searching');
   resetUI();lastQuery='';$('searchBtn').disabled=true;$('status').textContent='Đang xác định vị trí của bạn...';
@@ -909,12 +911,24 @@ function nearbyMe(){
     lastQ='';
     api('nearby',Object.assign({lat:userPos.lat,lng:userPos.lng,kind:'GẦN TÔI',q:''},uparams())).then(function(res){
       $('searchBtn').disabled=false;lastSid=res.sid||'';
-      if(res.success){playSound('found');$('status').textContent='Cửa hàng gần bạn nhất:';showResults(res.results,'sheet');}
-      else{playSound('error');$('status').innerHTML='<span class="error">'+esc(res.message)+'</span>';}
+      if(res.success){
+        playSound('found');
+        $('status').textContent='Cửa hàng gần bạn nhất:';
+        showResults(res.results,'sheet');
+      } else {
+        playSound('error');
+        $('status').innerHTML='<span class="error">'+esc(res.message)+'</span>';
+        // Hiển thị ngay nút tìm Google Maps nếu không thấy cửa hàng nội bộ nào
+        showMapsSearchBtn();
+      }
       loadGoogleNearby(userPos.lat,userPos.lng);
     });
   });
 }
+
+
+
+      
 function loadGoogleNearby(lat,lng){
   var box=$('googleList'),my=++googleSeq;
   googleResults=[];
