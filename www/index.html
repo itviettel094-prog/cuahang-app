@@ -65,6 +65,19 @@ label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
 .login-card .row{margin-top:6px}
 .login-card .btn-req{flex:0 0 auto;padding:12px 12px;font-size:13px}
 .req-row{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid #eee;padding:10px 0;flex-wrap:wrap}
+/* Màn hình đăng nhập: chữ xanh lá, nút xanh dương */
+#loginView h2,#loginView .subtitle,#loginView label,#loginView .hint,#loginView input,#loginView .ok,
+#pwView h2,#pwView .subtitle,#pwView label,#pwView .hint,#pwView input{color:#188038}
+#loginView input::placeholder,#pwView input::placeholder{color:#7bb88d}
+#loginView button,#loginView .btn-orange,#pwView button{background:#1a73e8;color:#fff}
+#loginView .btn-link,#pwView .btn-link{background:none;color:#188038}
+#loginView button:disabled,#pwView button:disabled{background:#9aa0a6}
+.about{margin-top:18px;padding-top:12px;border-top:1px solid #e0e0e0;font-size:12px;line-height:1.6;color:#188038;text-align:center}
+.about b{font-weight:700}
+.about{animation:blink 3.2s ease-in-out infinite,colors 12s linear infinite}
+@keyframes colors{0%,100%{color:#188038}16%{color:#1a73e8}33%{color:#9334e6}50%{color:#e91e63}66%{color:#f29900}83%{color:#d93025}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@media (prefers-reduced-motion:reduce){.about{animation:none}}
 .steps{padding-left:20px;margin:0 0 14px;font-size:13px;color:#3c4043;line-height:1.7}
 </style>
 </head>
@@ -74,8 +87,7 @@ label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
   <!-- ĐĂNG NHẬP -->
   <div id="loginView" class="hidden center">
     <div class="login-card">
-      <h2>🔐 Đăng nhập</h2>
-      <p class="subtitle" id="loginSub">Nhập email của bạn và mã truy cập do quản trị viên cấp.</p>
+      <h2>ĐĂNG NHẬP</h2>
       <label>Email</label>
       <input type="email" id="loginEmail" placeholder="ten@gmail.com" autocapitalize="none" autocomplete="username" oninput="onEmailInput()" />
       <label id="loginCodeLabel">Mã truy cập</label>
@@ -86,7 +98,13 @@ label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
         <button id="loginBtn" onclick="doLogin()" style="flex:1">Đăng nhập</button>
         <button id="reqBtn" class="btn-orange btn-req" onclick="requestCode()" disabled>📨 Gửi yêu cầu cấp mã</button>
       </div>
-      <div class="hint" style="text-align:center;margin-top:10px">Nút "Gửi yêu cầu cấp mã" sáng lên khi bạn nhập email hợp lệ.</div>
+      <div class="hint" style="text-align:center;margin-top:10px">Nhập địa chỉ Gmail cá nhân của bạn vào và bấm "Gửi yêu cầu cấp mã" nếu chưa có tài khoản.</div>
+      <div class="about">
+        <b>Tìm cửa hàng</b> • Phiên bản 1.0<br>
+        Phần mềm được phát triển bởi <b>IT Team Trần Thị Dung</b>.<br>
+        Phần mềm nội bộ, chỉ dành cho nhân viên được cấp quyền.<br>
+        © 2026 IT Team Trần Thị Dung. Bảo lưu mọi quyền.
+      </div>
     </div>
   </div>
 
@@ -221,9 +239,6 @@ label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
         <button class="btn-small mode" data-m="walking" onclick="setMode('walking')">🚶 Đi bộ</button>
       </div>
       <a id="navLink" class="nav-main" href="#" target="_blank" rel="noopener">🧭 Chỉ đường bằng Google Maps</a>
-      <div class="hint" style="margin:-4px 0 10px">Máy đã cài Google Maps sẽ mở thẳng ứng dụng. Chưa cài thì tự mở bản web.</div>
-      <iframe id="mapFrame" allowfullscreen loading="lazy"></iframe><br>
-      <a id="viewLink" class="map-link" href="#" target="_blank" rel="noopener">📍 Xem vị trí trên Google Maps</a>
     </div>
   </div>
 </div>
@@ -236,6 +251,31 @@ var wipeShown=false, photoData = null, gpsAcc = null, editRow = null, editName =
 function $(id){return document.getElementById(id);}
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
 function isAdmin(){return session && session.role==='admin';}
+
+// ---------- ÂM THANH THÔNG BÁO ----------
+// Các file mp3 để CÙNG THƯ MỤC với index.html, giữ nguyên tên gốc.
+var SND={
+  gps:'cấp_quyền_gps.mp3',        // chưa bật / chưa cấp quyền GPS
+  searching:'đang_tìm_kiếm.mp3',  // bấm "Cửa hàng gần tôi nhất" hoặc "Tìm cửa hàng khác trên Google Maps"
+  found:'đã_có_kết_quả.mp3',      // tìm có kết quả
+  error:'lỗi_tìm_kiếm.mp3',       // "Không tìm thấy ..."
+  fake:'tat_face_gps.mp3',        // phát hiện GPS giả
+  expired:'hết_hạn.mp3'           // hết hạn / đến ngày xoá app
+};
+var sndObj={}, sndCur=null, sndPending=null;
+(function(){Object.keys(SND).forEach(function(k){try{var a=new Audio(encodeURI(SND[k]));a.preload='auto';sndObj[k]=a;}catch(e){}});})();
+function stopSound(){if(sndCur){try{sndCur.pause();sndCur.currentTime=0;}catch(e){}sndCur=null;}}
+function playSound(k){
+  var a=sndObj[k];if(!a)return;
+  stopSound();sndPending=null;
+  try{a.currentTime=0;}catch(e){}
+  sndCur=a;
+  var pr;try{pr=a.play();}catch(e){}
+  if(pr&&pr.catch)pr.catch(function(){sndPending=k;});   // trình duyệt chặn tự phát: phát ngay khi người dùng chạm lần đầu
+}
+['pointerdown','touchstart','keydown'].forEach(function(ev){
+  document.addEventListener(ev,function(){if(sndPending){var k=sndPending;sndPending=null;playSound(k);}},true);
+});
 
 // ---------- THÔNG TIN THIẾT BỊ (ghi vào nhật ký) ----------
 var devInfo={id:'',type:'',model:'',os:'',app:'Web'};
@@ -290,7 +330,7 @@ function api(action, params, post){
     var qs = Object.keys(payload).filter(function(k){return payload[k]!==undefined&&payload[k]!==null;}).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(payload[k]);}).join('&');
     return fetch(API+'?'+qs);
   }).then(function(r){return r.json();}).then(function(res){
-    if(res && res.authFail && session){ if(res.wipe)wipeApp(res.message); else logout(res.message); }
+    if(res && res.authFail && session){ if(res.expired||res.wipe)playSound('expired'); if(res.wipe)wipeApp(res.message); else logout(res.message); }
     else if(res && res.mustChange && session){ session.mustChange=true; saveSession(); showView(); }
     return res;
   }).catch(function(e){return {success:false,message:'Không kết nối được máy chủ. Kiểm tra mạng. ('+e.message+')'};});
@@ -351,7 +391,6 @@ function setLoginState(st){
   $('loginCodeLabel').textContent=isPw?'Mật khẩu':'Mã truy cập';
   $('loginCode').placeholder=isPw?'Mật khẩu của bạn':'Mã truy cập do quản trị viên cấp';
   $('loginCode').setAttribute('autocapitalize',isPw?'none':'characters');
-  $('loginSub').textContent=isPw?'Nhập email và mật khẩu của bạn.':'Nhập email của bạn và mã truy cập do quản trị viên cấp.';
   $('loginHint').textContent=st==='pending'?'Bạn đã được cấp mã. Đăng nhập lần đầu bằng mã này, sau đó bạn sẽ đặt mật khẩu mới.':
     (st==='password'?'Quên mật khẩu? Bấm "Gửi yêu cầu cấp mã" để xin cấp lại.':'');
 }
@@ -491,7 +530,20 @@ function locateSafe(o){
     });
   });
 }
-function primeGps(){ if(capGeo())nativeReady(); }
+// Trước khi đăng nhập: nếu chưa bật / chưa cấp quyền GPS thì phát âm thanh "cấp quyền GPS"
+function primeGps(){
+  if(capGeo()){
+    nativeReady().then(function(st){ if(st!=='ok')playSound('gps'); });
+    return;
+  }
+  try{
+    if(navigator.permissions&&navigator.permissions.query){
+      navigator.permissions.query({name:'geolocation'}).then(function(r){
+        if(r.state!=='granted')playSound('gps');
+      }).catch(function(){});
+    }
+  }catch(e){}
+}
 
 // Dò GPS: lấy vị trí có sẵn/gần đúng NGAY (quickAcc), đồng thời dò chính xác;
 // dừng khi đạt target (mét) hoặc đạt quickAcc nếu có đặt.
@@ -544,6 +596,7 @@ function locate(o){
 }
 
 function logGpsErr(msg){
+  playSound(msg===MSG_FAKE?'fake':'gps');   // giả GPS -> tat_face_gps; chưa bật/cấp quyền GPS -> cấp quyền GPS
   if(msg===MSG_FAKE){
     var gi=guardInfo||{};
     logEvt('GPS_GIA',{note:'PHÁT HIỆN GPS GIẢ'+((gi.mockApps&&gi.mockApps.length)?' | App giả GPS: '+gi.mockApps.join('; '):'')+(gi.devOptions?' | Bật tuỳ chọn nhà phát triển':'')});
@@ -594,7 +647,7 @@ function refineQuiet(){
   }).catch(function(){});
 }
 function setUserPos(p){
-  userPos=p;
+  userPos=p;if(sndPending==='gps')sndPending=null;
   logEvt('DINH_VI',{lat:p.lat,lng:p.lng,acc:Math.round(p.acc),pt:p.time});
   var t=new Date(p.time);
   setGpsUi(true);
@@ -702,23 +755,26 @@ function doSearch(){
     req.then(function(res){
       $('searchBtn').disabled=false;lastSid=res.sid||'';
       if(res.success){
+        playSound('found');
         $('status').textContent=c?'Cửa hàng gần toạ độ đã nhập (gần nhất trước):':'Tìm thấy '+res.results.length+' kết quả (gần bạn nhất trước):';
         showResults(res.results,'sheet');
       } else {
+        playSound('error');
         $('status').textContent='';showNotFound(res.message);
       }
     });
   });
 }
 function nearbyMe(){
+  playSound('searching');
   resetUI();lastQuery='';$('searchBtn').disabled=true;$('status').textContent='Đang xác định vị trí của bạn...';
   ensureFreshPos(true).then(function(ok){
     if(!ok){$('searchBtn').disabled=false;return;}
     lastQ='';
     api('nearby',Object.assign({lat:userPos.lat,lng:userPos.lng,kind:'GẦN TÔI',q:''},uparams())).then(function(res){
       $('searchBtn').disabled=false;lastSid=res.sid||'';
-      if(res.success){$('status').textContent='Cửa hàng gần bạn nhất:';showResults(res.results,'sheet');}
-      else{$('status').innerHTML='<span class="error">'+esc(res.message)+'</span>';}
+      if(res.success){playSound('found');$('status').textContent='Cửa hàng gần bạn nhất:';showResults(res.results,'sheet');}
+      else{playSound('error');$('status').innerHTML='<span class="error">'+esc(res.message)+'</span>';}
       loadGoogleNearby(userPos.lat,userPos.lng);
     });
   });
@@ -760,6 +816,7 @@ function showMapsSearchBtn(){
     '<button class="btn-red" style="width:100%" onclick="openGroceryMaps()">🗺️ Tìm cửa hàng khác gần tôi trên Google Maps</button></div>';
 }
 function openGroceryMaps(){
+  playSound('searching');
   var p=userPos;
   var web=p?('https://www.google.com/maps/search/'+encodeURIComponent(GROCERY_Q).replace(/%20/g,'+')+'/@'+p.lat+','+p.lng+',17z')
            :('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(GROCERY_Q).replace(/%20/g,'+'));
@@ -826,9 +883,7 @@ function selectResult(i,byUser){
   $('coordValue').textContent=p.lat.toFixed(7)+' '+p.lng.toFixed(7);
   $('distLine').textContent=(p.dUser!=null)?('📏 Cách bạn khoảng '+fmtDist(p.dUser)+' (đường thẳng). Lộ trình thực tế xem trong Google Maps.'):'';
   $('navLink').href=navUrl(p);
-  $('viewLink').href=viewUrl(p);
   markMode();
-  $('mapFrame').src='https://maps.google.com/maps?q='+p.lat+','+p.lng+'&z=16&output=embed';
   $('mapSection').classList.remove('hidden');
 }
 function copyText(t,btn){
