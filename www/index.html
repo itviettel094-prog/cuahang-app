@@ -1060,7 +1060,6 @@ function selectResult(i,byUser){
   if(!p||typeof p.lat!=='number'||typeof p.lng!=='number'){$('mapSection').classList.add('hidden');return;}
   $('coordValue').textContent=p.lat.toFixed(7)+' '+p.lng.toFixed(7);
   $('navLink').href=navUrl(p);
-  markMode();
   $('mapSection').classList.remove('hidden');
 }
 function copyText(t,btn){
@@ -1261,7 +1260,6 @@ function impParseCsv(text){
     if(q){ if(ch==='"'){ if(text.charAt(i+1)==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
     else if(ch==='"')q=true;
     else if(ch===d){row.push(cur);cur='';}
-    else if(ch===sprintf('\n')){row.push(cur);rows.push(row);row=[];cur='';} // fallback
     else if(ch==='\n'){row.push(cur);rows.push(row);row=[];cur='';}
     else if(ch!=='\r')cur+=ch;
   }
