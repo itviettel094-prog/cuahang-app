@@ -977,7 +977,7 @@ function nearbyMe(){
         // Hiển thị ngay nút tìm Google Maps nếu không thấy cửa hàng nội bộ nào
         showMapsSearchBtn();
       }
-      loadGoogleNearby(userPos.lat,userPos.lng);
+
     });
   });
 }
@@ -1039,8 +1039,7 @@ function showNotFound(msg){
    '<div class="row wrap">' +
    addBtn + '</div></div>';
    
-  // Thêm dòng này để hiện nút Google Maps ở dưới cùng khi không tìm thấy
-  showMapsSearchBtn();
+
 }
 function searchOnMaps(){
   $('notFoundBox').innerHTML='';$('status').textContent='Đang tìm trên bản đồ...';
