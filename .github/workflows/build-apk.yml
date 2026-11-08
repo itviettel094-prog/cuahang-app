@@ -70,24 +70,25 @@ jobs:
       - name: Đồng bộ web vào Android
         run: npx cap sync android
 
-      - name: Chỉnh Gradle (chọn nguồn tải còn sống + tăng thời gian chờ)
+      - name: Tải Gradle thủ công (thử nhiều nguồn) + chỉnh wrapper
         run: |
           P=android/gradle/wrapper/gradle-wrapper.properties
           V=8.2.1
-          URL=""
+          F=/tmp/gradle-$V-bin.zip
+          OK=0
           for U in \
-            "https://services.gradle.org/distributions/gradle-$V-bin.zip" \
             "https://mirrors.cloud.tencent.com/gradle/gradle-$V-bin.zip" \
-            "https://repo.huaweicloud.com/gradle/gradle-$V-bin.zip"; do
-            echo "Thử: $U"
-            if curl -fsIL --max-time 30 "$U" -o /dev/null; then URL="$U"; echo "-> dùng nguồn này"; break; fi
+            "https://repo.huaweicloud.com/gradle/gradle-$V-bin.zip" \
+            "https://services.gradle.org/distributions/gradle-$V-bin.zip"; do
+            echo "=== Tải: $U"
+            rm -f $F
+            if curl -fL --retry 3 --retry-delay 5 --connect-timeout 20 --max-time 300 -o $F "$U" && unzip -tq $F >/dev/null 2>&1; then
+              echo "-> Tải xong và file zip hợp lệ"; OK=1; break
+            fi
+            echo "-> Nguồn này lỗi, thử nguồn tiếp theo"
           done
-          if [ -z "$URL" ]; then
-            URL="https://services.gradle.org/distributions/gradle-$V-bin.zip"
-            echo "Không nguồn nào trả lời, dùng nguồn mặc định"
-          fi
-          ESC=$(echo "$URL" | sed 's|:|\\:|')
-          sed -i "s|^distributionUrl=.*|distributionUrl=$ESC|" $P
+          if [ "$OK" != "1" ]; then echo "KHÔNG TẢI ĐƯỢC GRADLE từ nguồn nào, hãy chạy lại sau ít phút"; exit 1; fi
+          sed -i "s|^distributionUrl=.*|distributionUrl=file\\\\:$F|" $P
           sed -i '/^networkTimeout=/d' $P
           echo "networkTimeout=120000" >> $P
           cat $P
