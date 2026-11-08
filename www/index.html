@@ -1001,7 +1001,20 @@ function searchOnMaps(){
     }
   });
 }
-var selected=null, lastSid='', lastQ='', googleResults=[], googleSeq=0;
+ var selected=null, lastSid='', lastQ='', googleResults=[], googleSeq=0;
+var gpsWatch=null;
+function stopGps(){
+  if(gpsWatch){
+    try{
+      if(gpsWatch.timer)clearTimeout(gpsWatch.timer);
+      if(gpsWatch.id!=null){
+        if(gpsWatch.G)gpsWatch.G.clearWatch({id:gpsWatch.id});
+        else navigator.geolocation.clearWatch(gpsWatch.id);
+      }
+    }catch(e){}
+  }
+  gpsWatch=null;
+} 
 function uparams(){return userPos?{ulat:userPos.lat,ulng:userPos.lng,uacc:Math.round(userPos.acc),upt:userPos.time}:{};}
 function logStore(evt,p){
   var o={sid:lastSid,store:p.name,slat:p.lat,slng:p.lng,dist:(p.dUser!=null?Math.round(p.dUser):'')};
