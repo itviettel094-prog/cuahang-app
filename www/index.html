@@ -138,6 +138,31 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
 </style>
 </head>
 <body>
+  <div class="card">
+    <h3>📷 Thử nghiệm Camera</h3>
+    <video id="webcam" autoplay playsinline width="100%" height="auto" style="border-radius:8px; background:#000;"></video>
+    <button class="btn-green" style="width:100%; margin-top:8px;" onclick="initCamera()">Mở Camera</button>
+</div>
+
+<script>
+async function initCamera() {  
+    try {  
+        // Trình duyệt tự kiểm tra quyền truy cập Camera  
+        const stream = await navigator.mediaDevices.getUserMedia({   
+            video: true,   
+            audio: false   
+        });
+        
+        const videoElement = document.getElementById('webcam');  
+        videoElement.srcObject = stream;  
+        console.log("Đã bật camera thành công!");
+        
+    } catch (error) {  
+        console.error("Người dùng từ chối cấp quyền hoặc thiết bị không hỗ trợ:", error); 
+        alert("Không thể truy cập camera. Vui lòng cấp quyền trong cài đặt.");
+    }  
+}  
+</script>
 <div class="container">
 
   <!-- ĐĂNG NHẬP -->
