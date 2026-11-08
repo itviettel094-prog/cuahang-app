@@ -40,7 +40,15 @@ jobs:
         run: |
           R=android/app/src/main/res
           find $R -name 'ic_launcher*.webp' -delete
-          cp -r app-icons/* $R/
+          SRC=app-icons
+          [ -d app-icons/app-icons ] && SRC=app-icons/app-icons
+          echo "Lấy icon từ: $SRC"; ls $SRC
+          cp -r $SRC/* $R/
+          rm -rf $R/app-icons
+          # Nếu bộ icon không có icon thích ứng (adaptive) thì bỏ bản mặc định, tránh thiếu tài nguyên
+          if [ ! -d "$SRC/mipmap-anydpi-v26" ]; then rm -rf $R/mipmap-anydpi-v26; fi
+          # Nếu không có file icon nào thì báo lỗi rõ ràng
+          ls $R/mipmap-*/ic_launcher*.png >/dev/null 2>&1 || { echo "KHÔNG THẤY ic_launcher*.png trong $SRC, kiểm tra lại thư mục app-icons"; exit 1; }
           rm -f $R/drawable-v24/ic_launcher_foreground.xml
           rm -f $R/drawable/ic_launcher_background.xml
           ls $R/mipmap-xxxhdpi
