@@ -791,30 +791,13 @@ function requestLocationPermissionLoop() {
 
     var Geolocation = C.Plugins.Geolocation;
 
-    function checkAndAsk() {
-        Geolocation.checkPermissions().then(function(perm) {
-            if (perm && perm.location === 'granted') {
-                // Đã cấp quyền thì dừng luôn, không gọi startGate lặp lại ở đây nữa tránh giật app
-                return;
-            }
-
-            Geolocation.requestPermissions().then(function(newPerm) {
-                if (newPerm && newPerm.location === 'granted') {
-                    // Đã cấp thì thôi, không gọi lại startGate nữa vì app đã tự chạy rồi
-                } else {
-                    setTimeout(checkAndAsk, 6000);
-                }
-            }).catch(function() {
-                setTimeout(checkAndAsk, 6000);
-            });
-        }).catch(function() {
-            setTimeout(checkAndAsk, 6000);
-        });
-    }
-
-    checkAndAsk();
+    Geolocation.checkPermissions().then(function(perm) {
+        if (perm && perm.location === 'granted') {
+            return;
+        }
+        Geolocation.requestPermissions().catch(function() {});
+    }).catch(function() {});
 }
-
   
 var geoLast=null;
 function showPosDetail(p){
