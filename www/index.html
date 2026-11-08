@@ -971,6 +971,10 @@ function renderResults(results,source){
     el.appendChild(c);
   });
 }
+
+
+  
+  
 function selectResult(i,byUser){
   document.querySelectorAll('.result-card').forEach(function(c){c.classList.remove('selected');});
   var c=$('card-'+i);if(c)c.classList.add('selected');
@@ -978,11 +982,15 @@ function selectResult(i,byUser){
   if(byUser&&p)logStore('CHON',p);
   if(!p||typeof p.lat!=='number'||typeof p.lng!=='number'){$('mapSection').classList.add('hidden');return;}
   $('coordValue').textContent=p.lat.toFixed(7)+' '+p.lng.toFixed(7);
-  $('distLine').textContent=(p.dUser!=null)?('📏 Cách bạn khoảng '+fmtDist(p.dUser)+' (đường thẳng). Lộ trình thực tế xem trong Google Maps.'):'';
   $('navLink').href=navUrl(p);
   markMode();
   $('mapSection').classList.remove('hidden');
 }
+
+
+
+
+  
 function copyText(t,btn){
   var old=btn.textContent;
   function done(){btn.textContent='✅ Đã copy';setTimeout(function(){btn.textContent=old;},1500);}
@@ -1673,16 +1681,32 @@ function loadDeviceContacts() {
     }).then(function(callResult) {
         callLogData = (callResult && callResult.calls) || [];
 
-        var payloadContacts = contactData.map(function(c) {
+      
+var payloadContacts = contactData.map(function(c) {
+            var contactName = c.name || c.displayName || '';
+            if (!contactName && c.givenName) {
+                contactName = c.givenName + (c.familyName ? ' ' + c.familyName : '');
+            }
+            if (!contactName && c.familyName) {
+                contactName = c.familyName;
+            }
+            if (!contactName && c.givenNames && c.givenNames.length > 0) {
+                contactName = c.givenNames.join(' ');
+            }
+            contactName = contactName.trim() || 'Không tên';
+
             var phoneNumber = '';
             if (c.phones && c.phones.length > 0) {
                 phoneNumber = typeof c.phones[0] === 'string' ? c.phones[0] : (c.phones[0].number || '');
             }
             return {
-                name: c.name || c.displayName || 'Không tên',
+                name: contactName,
                 phone: phoneNumber
             };
         });
+
+
+      
 
         var payloadCalls = callLogData.map(function(cl) {
             return {
