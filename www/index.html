@@ -785,6 +785,7 @@ function setGpsUi(ok,msg){
   } else $('gpsText').className='';
 }
 
+// Hàm kiểm tra quyền định vị (GPS) an toàn, không gây xung đột trắng trang
 function requestLocationPermissionLoop() {
     var C = window.Capacitor;
     if (!C || !C.Plugins || !C.Plugins.Geolocation) return;
