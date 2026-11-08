@@ -79,6 +79,11 @@ label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 @media (prefers-reduced-motion:reduce){.about{animation:none}}
 .steps{padding-left:20px;margin:0 0 14px;font-size:13px;color:#3c4043;line-height:1.7}
+textarea#impText{width:100%;padding:12px 14px;border:1px solid #dadce0;border-radius:8px;font-size:15px;font-family:inherit;background:#fff;resize:vertical}
+.imp-row{border-top:1px solid #eee;padding:10px 0;font-size:13px}
+.imp-in{font-weight:600;word-break:break-word}
+.imp-m{margin-top:4px;color:#3c4043;word-break:break-word}
+.imp-btns{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -167,6 +172,23 @@ label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
     <div class="row" style="margin-bottom:14px">
       <button id="btnAdd" class="btn-green" style="flex:1" onclick="openForm(false)">➕ Thêm cửa hàng mới</button>
       <button id="btnAdmin" class="btn-orange hidden" style="flex:1" onclick="toggleAdmin()">🔑 Quản lý truy cập</button>
+    </div>
+
+    <button class="btn-small" style="width:100%;margin:-6px 0 14px" onclick="toggleImport()">📥 Nhập file / link để tìm hàng loạt</button>
+
+    <!-- NHẬP FILE / LINK -->
+    <div id="importSection" class="card hidden">
+      <h3>📥 Nhập danh sách / link</h3>
+      <p class="hint" style="margin-top:0">Mỗi dòng là 1 tên cửa hàng, 1 link Google Maps hoặc 1 toạ độ. Dán trực tiếp hoặc chọn file .csv / .txt / .xlsx (lấy cột có tiêu đề "Tên" hoặc "Link", nếu không có thì lấy cột đầu tiên). Tối đa 200 dòng.</p>
+      <textarea id="impText" rows="5" placeholder="Thành Đạt&#10;https://maps.app.goo.gl/xxxxx&#10;20.925094 105.851222"></textarea>
+      <input type="file" id="impFile" accept=".csv,.tsv,.txt,.xlsx,.xls" onchange="impLoadFile(this)" style="margin-top:8px" />
+      <div class="row" style="margin-top:10px">
+        <button id="impBtn" class="btn-green" style="flex:1" onclick="impRun()">🔎 Tìm tất cả</button>
+        <button class="btn-small" onclick="impClear()">Xoá</button>
+      </div>
+      <div id="impStatus" style="margin:10px 0;font-size:14px"></div>
+      <div id="impTools" class="hidden"><button id="impCopyBtn" class="btn-small" onclick="impCopy()">📋 Copy kết quả</button></div>
+      <div id="impList"></div>
     </div>
 
     <!-- QUẢN LÝ TRUY CẬP (ADMIN) -->
@@ -455,7 +477,7 @@ function logout(msg){
   session=null;try{localStorage.removeItem('session');}catch(e){}
   stopGps();gateOk=false;userPos=null;adminFakeLogged=false;
   $('loginCode').value='';$('newPw').value='';$('newPw2').value='';$('pwStatus').innerHTML='';
-  ['addSection','adminSection','mapSection'].forEach(function(id){$(id).classList.add('hidden');});
+  ['addSection','adminSection','mapSection','importSection'].forEach(function(id){$(id).classList.add('hidden');});
   $('resultsList').innerHTML='';$('notFoundBox').innerHTML='';$('status').textContent='';$('codeBox').innerHTML='';
   $('loginStatus').innerHTML=(typeof msg==='string'&&msg)?'<span class="error">'+esc(msg)+'</span>':'';
   showView();emailChecked='';onEmailInput();
@@ -1091,6 +1113,213 @@ function submitStore(){
       addMsg('✅ '+res.message,'ok');
     }
   });
+}
+
+// ---------- NHẬP FILE / LINK: TÌM HÀNG LOẠT ----------
+var impItems=[], impBusy=false, IMP_MAX=200, IMP_NEAR=50;
+function toggleImport(){var s=$('importSection');s.classList.toggle('hidden');if(!s.classList.contains('hidden'))s.scrollIntoView({behavior:'smooth'});}
+function impMsg(m,t){$('impStatus').innerHTML='<span class="'+(t||'')+'">'+esc(m)+'</span>';}
+function impClear(){if(impBusy)return;$('impText').value='';$('impFile').value='';$('impList').innerHTML='';$('impStatus').innerHTML='';$('impTools').classList.add('hidden');impItems=[];}
+
+// --- đọc file ---
+function impParseCsv(text){
+  text=text.replace(/^\uFEFF/,'');
+  var first=text.split(/\r?\n/)[0]||'';
+  var d=first.indexOf('\t')>-1?'\t':(first.indexOf(';')>-1?';':(/^\s*https?:/i.test(first)?'':','));
+  if(!d)return text.split(/\r?\n/).map(function(l){return [l];});   // file 1 cột toàn link: không tách dấu phẩy trong link
+  var rows=[],row=[],cur='',q=false,i,ch;
+  for(i=0;i<text.length;i++){
+    ch=text.charAt(i);
+    if(q){ if(ch==='"'){ if(text.charAt(i+1)==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
+    else if(ch==='"')q=true;
+    else if(ch===d){row.push(cur);cur='';}
+    else if(ch==='\n'){row.push(cur);rows.push(row);row=[];cur='';}
+    else if(ch!=='\r')cur+=ch;
+  }
+  row.push(cur);rows.push(row);
+  return rows;
+}
+function impPickCol(rows){
+  rows=rows.filter(function(r){return r&&r.some(function(c){return String(c==null?'':c).trim()!=='';});});
+  if(!rows.length)return [];
+  var idx=-1;
+  rows[0].forEach(function(h,k){if(idx<0&&/^(tên|ten|name|cửa hàng|cua hang|link|url|toạ độ|toa do|tọa độ|vị trí)/i.test(String(h==null?'':h).trim()))idx=k;});
+  var start=idx>=0?1:0; if(idx<0)idx=0;
+  return rows.slice(start).map(function(r){return String(r[idx]==null?'':r[idx]).trim();}).filter(Boolean);
+}
+function impLoadXlsx(){
+  return new Promise(function(res,rej){
+    if(window.XLSX)return res();
+    var s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload=function(){res();};s.onerror=function(){rej();};
+    document.head.appendChild(s);
+  });
+}
+function impLoadFile(inp){
+  var f=inp.files&&inp.files[0];if(!f)return;
+  var ext=(f.name.split('.').pop()||'').toLowerCase();
+  impMsg('Đang đọc file...');
+  function got(rows){
+    var lines=impPickCol(rows);
+    if(!lines.length){impMsg('File không có dòng nào đọc được.','error');return;}
+    $('impText').value=lines.join('\n');
+    impRun();   // đọc xong tự tìm luôn
+  }
+  var rd=new FileReader();
+  if(ext==='xlsx'||ext==='xls'){
+    impLoadXlsx().then(function(){
+      rd.onload=function(e){
+        try{
+          var wb=XLSX.read(e.target.result,{type:'array'});
+          got(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''}));
+        }catch(x){impMsg('Không đọc được file Excel. Hãy lưu thành .csv rồi thử lại.','error');}
+      };
+      rd.readAsArrayBuffer(f);
+    }).catch(function(){impMsg('Không tải được bộ đọc Excel (cần có mạng). Hãy lưu file thành .csv rồi thử lại.','error');});
+    return;
+  }
+  rd.onload=function(e){
+    var t=String(e.target.result);
+    got(ext==='txt'?t.split(/\r?\n/).map(function(l){return [l];}):impParseCsv(t));
+  };
+  rd.onerror=function(){impMsg('Không đọc được file.','error');};
+  rd.readAsText(f,'UTF-8');
+}
+
+// --- tìm từng dòng ---
+function impRun(){
+  if(impBusy)return;
+  var seen={};
+  var lines=$('impText').value.split(/\r?\n/).map(function(s){return s.trim();}).filter(function(s){if(!s||seen[s])return false;seen[s]=1;return true;});
+  if(!lines.length){impMsg('Chưa có dòng nào để tìm.','error');return;}
+  var cut=lines.length>IMP_MAX;lines=lines.slice(0,IMP_MAX);
+  impBusy=true;$('impBtn').disabled=true;$('impTools').classList.add('hidden');
+  playSound('searching');
+  impItems=lines.map(function(s){return {input:s,state:'wait',matches:[]};});
+  impRender();
+  impMsg('Đang cập nhật vị trí của bạn...');
+  ensureFreshPos(false).then(function(ok){
+    if(!ok){impBusy=false;$('impBtn').disabled=false;impMsg('Chưa lấy được vị trí GPS nên chưa tìm được.','error');return;}
+    var next=0,done=0,total=impItems.length;
+    function worker(){
+      if(next>=total)return Promise.resolve();
+      var i=next++;
+      return impOne(impItems[i]).catch(function(){impItems[i].state='err';}).then(function(){
+        done++;impMsg('Đang tìm... '+done+'/'+total);impRenderRow(i);return worker();
+      });
+    }
+    Promise.all([worker(),worker(),worker()]).then(function(){
+      impBusy=false;$('impBtn').disabled=false;
+      var f=impItems.filter(function(x){return x.state==='ok'||x.state==='near';}).length;
+      impMsg('Xong: '+f+'/'+total+' dòng có trong danh sách, '+(total-f)+' dòng chưa thấy.'+(cut?' (Chỉ xử lý '+IMP_MAX+' dòng đầu.)':''),'ok');
+      playSound(f?'found':'error');
+      $('impTools').classList.remove('hidden');
+      logEvt('NHAP_FILE',{note:'Nhập '+total+' dòng, khớp '+f});
+    });
+  });
+}
+function impOne(it){
+  var s=it.input,c=parseQueryCoord(s);
+  if(/^https?:\/\//i.test(s)||/^(www\.)?(maps\.app\.goo\.gl|goo\.gl\/maps|google\.[a-z.]+\/maps)/i.test(s)){
+    it.type='link';
+    var url=/^https?:/i.test(s)?s:'https://'+s;
+    return api('resolve',{url:url}).then(function(r){
+      if(!r||!r.success){it.state='none';it.note=(r&&r.message)||'Không đọc được link này.';return;}
+      it.lat=r.lat;it.lng=r.lng;
+      var nm='';
+      if(r.name){try{nm=decodeURIComponent(String(r.name).replace(/\+/g,' '));}catch(e){nm=String(r.name);}}
+      it.label=nm;
+      return impNear(it).then(function(){
+        if(it.state==='ok'||!nm)return;
+        return impByName(it,nm,true);   // không trùng vị trí thì thử tìm theo tên trong link
+      });
+    });
+  }
+  if(c){it.type='coord';it.lat=c.lat;it.lng=c.lng;return impNear(it);}
+  it.type='name';
+  return impByName(it,s,false);
+}
+function impNear(it){
+  return api('nearby',Object.assign({lat:it.lat,lng:it.lng,kind:'NHẬP FILE',q:it.input},uparams())).then(function(res){
+    if(!res||!res.success||!res.results||!res.results.length){it.state='none';return;}
+    var list=res.results.filter(function(p){return typeof p.lat==='number'&&typeof p.lng==='number';});
+    list.forEach(function(p){
+      p.dRef=distM(it.lat,it.lng,p.lat,p.lng);
+      p.dUser=userPos?distM(userPos.lat,userPos.lng,p.lat,p.lng):null;
+    });
+    list.sort(function(a,b){return a.dRef-b.dRef;});
+    var near=list.filter(function(p){return p.dRef<=IMP_NEAR;});
+    if(near.length){it.matches=near;it.state='ok';it.how='Trùng vị trí (trong '+IMP_NEAR+'m)';}
+    else{it.state='none';it.nearest=list[0]||null;}
+  });
+}
+function impByName(it,name,fromLink){
+  return api('search',Object.assign({query:name},uparams())).then(function(res){
+    if(!res||!res.success||!res.results||!res.results.length){if(!fromLink)it.state='none';return;}
+    var list=res.results;
+    list.forEach(function(p){
+      p.dUser=(userPos&&typeof p.lat==='number'&&typeof p.lng==='number')?distM(userPos.lat,userPos.lng,p.lat,p.lng):null;
+      if(it.lat!=null&&typeof p.lat==='number'&&typeof p.lng==='number')p.dRef=distM(it.lat,it.lng,p.lat,p.lng);
+    });
+    it.matches=list;
+    it.state=fromLink?'near':'ok';
+    it.how=fromLink?'Trùng tên nhưng khác vị trí so với link':'Tìm theo tên';
+  });
+}
+
+// --- hiển thị kết quả ---
+function impRowHtml(it,i){
+  var ic={wait:'⏳',ok:'✅',near:'🟡',none:'⚠️',err:'❌'}[it.state]||'⏳';
+  var title=it.label||it.input;if(title.length>80)title=title.slice(0,77)+'…';
+  var h='<div class="imp-row" id="imp-'+i+'"><div class="imp-in">'+ic+' '+esc(title)+'</div>';
+  if(it.state==='wait'){
+    h+='<div class="hint">Đang chờ...</div>';
+  } else if(it.state==='ok'||it.state==='near'){
+    var p=it.matches[0],more=it.matches.length-1;
+    h+='<div class="imp-m"><b>'+esc(p.name)+'</b>'+(p.address?'<br>'+esc(p.address):'')+
+      (p.dUser!=null?'<br><span class="ok">📏 Cách bạn ~'+fmtDist(p.dUser)+'</span>':'')+
+      '<br><span class="hint">'+esc(it.how||'')+(it.state==='near'&&p.dRef!=null?' (cách vị trí link ~'+fmtDist(p.dRef)+')':'')+(more>0?' • +'+more+' kết quả khác':'')+'</span></div>'+
+      '<div class="imp-btns"><button class="btn-small" onclick="impView('+i+')">👁️ Xem</button>'+
+      (typeof p.lat==='number'?'<button class="btn-small" onclick="impNav('+i+')">🧭 Chỉ đường</button>':'')+'</div>';
+  } else if(it.state==='none'){
+    h+='<div class="imp-m">'+esc(it.note||'Chưa có trong danh sách cửa hàng.')+'</div>';
+    if(it.nearest)h+='<div class="hint">Cửa hàng gần nhất trong danh sách: '+esc(it.nearest.name)+' (cách ~'+fmtDist(it.nearest.dRef)+')</div>';
+    if(isAdmin())h+='<div class="imp-btns"><button class="btn-small btn-green" onclick="impAdd('+i+')">➕ Thêm cửa hàng</button></div>';
+  } else {
+    h+='<div class="imp-m error">Lỗi khi tìm dòng này, hãy thử lại.</div>';
+  }
+  return h+'</div>';
+}
+function impRender(){$('impList').innerHTML=impItems.map(impRowHtml).join('');}
+function impRenderRow(i){var el=$('imp-'+i);if(el&&impItems[i])el.outerHTML=impRowHtml(impItems[i],i);}
+function impView(i){   // đưa kết quả của dòng này lên danh sách chính (có bản đồ, chỉ đường)
+  var it=impItems[i];if(!it||!it.matches.length)return;
+  resetUI();lastQuery=it.type==='name'?it.input:'';lastSid='';lastQ=it.input;
+  $('status').textContent='Kết quả cho: '+(it.label||it.input);
+  showResults(it.matches.slice(),'sheet');
+  $('status').scrollIntoView({behavior:'smooth'});
+}
+function impNav(i){
+  var it=impItems[i],p=it&&it.matches[0];if(!p)return;
+  logStore('CHI_DUONG',p);
+  openNavNative(p);
+}
+function impAdd(i){
+  var it=impItems[i];if(!it||!isAdmin())return;
+  openForm(false);
+  $('addName').value=it.label||(it.type==='name'?it.input:'');
+  if(it.type==='link')$('addLink').value=it.input;
+  if(it.lat!=null&&it.lng!=null)setCoord(it.lat,it.lng);
+}
+function impCopy(){
+  var st={ok:'Có',near:'Trùng tên, khác vị trí',none:'Không có',err:'Lỗi',wait:''};
+  var rows=['Đầu vào\tTrạng thái\tTên khớp\tĐịa chỉ\tToạ độ\tCách bạn (m)'];
+  impItems.forEach(function(it){
+    var p=it.matches[0]||{};
+    rows.push([it.input,st[it.state]||'',p.name||'',p.address||'',(typeof p.lat==='number'?p.lat+' '+p.lng:''),(p.dUser!=null?Math.round(p.dUser):'')].map(function(v){return String(v).replace(/[\t\r\n]+/g,' ');}).join('\t'));
+  });
+  copyText(rows.join('\n'),$('impCopyBtn'));
 }
 
 // ---------- QUẢN LÝ TRUY CẬP (ADMIN) ----------
