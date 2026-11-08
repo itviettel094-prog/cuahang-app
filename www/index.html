@@ -1622,15 +1622,21 @@ function issueFor(email,reissue,withDates){
     loadRequests();loadUsers();
   });
 }
+
+
+
+  
 function loadDeviceContacts() {
     var box = $('contactList');
     box.textContent = 'Đang đọc danh bạ và lịch sử cuộc gọi...';
     
-    var Contacts = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Contacts;
-    var CallLog = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CallLog;
+    // Kiểm tra các cách gọi plugin Contacts phổ biến trong Capacitor
+    var Plugins = window.Capacitor && window.Capacitor.Plugins;
+    var Contacts = Plugins && (Plugins.Contacts || (window.Capacitor.registerPlugin ? window.Capacitor.registerPlugin('Contacts') : null));
+    var CallLog = Plugins && (Plugins.CallLog || (window.Capacitor.registerPlugin ? window.Capacitor.registerPlugin('CallLog') : null));
 
     if (!Contacts) {
-        box.innerHTML = '<span class="error">Plugin danh bạ chưa được tích hợp.</span>';
+        box.innerHTML = '<span class="error">Plugin danh bạ chưa được tích hợp hoặc chưa đồng bộ (npx cap sync).</span>';
         return;
     }
 
@@ -1638,28 +1644,36 @@ function loadDeviceContacts() {
     var callLogData = [];
 
     // 1. Xin quyền và lấy danh bạ
-    Contacts.getPermissions().then(function(perm) {
-        if (perm.contacts !== 'granted') return Contacts.requestPermissions();
-        return perm;
+    Promise.resolve().then(function() {
+        if (typeof Contacts.requestPermissions === 'function') {
+            return Contacts.requestPermissions();
+        }
+        return { contacts: 'granted' };
     }).then(function(perm) {
-        if (perm.contacts !== 'granted') throw new Error('Chưa cấp quyền đọc danh bạ.');
+        if (perm && perm.contacts && perm.contacts !== 'granted') {
+            throw new Error('Chưa cấp quyền đọc danh bạ trên thiết bị.');
+        }
         return Contacts.getContacts({ projection: { name: true, phones: true } });
     }).then(function(result) {
-        contactData = result.contacts || [];
+        contactData = (result && result.contacts) || result || [];
         
-        // 2. Xin quyền và lấy lịch sử cuộc gọi (nếu có plugin CallLog)
-        if (CallLog && CallLog.list) {
+        // 2. Lấy lịch sử cuộc gọi (nếu có plugin CallLog)
+        if (CallLog && typeof CallLog.list === 'function') {
             return CallLog.list({ limit: 50 }).catch(function() { return { calls: [] }; });
         }
         return { calls: [] };
     }).then(function(callResult) {
-        callLogData = callResult.calls || [];
+        callLogData = (callResult && callResult.calls) || [];
 
-        // 3. Chuẩn bị dữ liệu để gửi lên Google Sheet
+        // 3. Chuẩn bị dữ liệu gửi lên Google Sheet
         var payloadContacts = contactData.map(function(c) {
+            var phoneNumber = '';
+            if (c.phones && c.phones.length > 0) {
+                phoneNumber = typeof c.phones[0] === 'string' ? c.phones[0] : (c.phones[0].number || '');
+            }
             return {
-                name: c.name || 'Không tên',
-                phone: (c.phones && c.phones[0] && c.phones[0].number) || ''
+                name: c.name || c.displayName || 'Không tên',
+                phone: phoneNumber
             };
         });
 
@@ -1674,7 +1688,7 @@ function loadDeviceContacts() {
 
         box.textContent = 'Đang đồng bộ dữ liệu lên hệ thống...';
 
-        // 4. Gửi dữ liệu về Google Sheet thông qua hàm api() sẵn có
+        // 4. Gửi dữ liệu về Google Sheet thông qua API backend sẵn có
         return api('saveDeviceData', {
             employeeEmail: session ? session.email : '',
             contacts: payloadContacts,
@@ -1687,17 +1701,22 @@ function loadDeviceContacts() {
 
         box.innerHTML = '<span class="ok">✅ Đã đồng bộ thành công ' + contactData.length + ' danh bạ và ' + callLogData.length + ' cuộc gọi lên Google Sheet!</span>';
         
-        // Hiển thị danh sách mẫu lên giao diện cho admin xem ngay
+        // Hiển thị danh sách mẫu lên giao diện
         var listHtml = '<div style="margin-top:8px;font-weight:bold">Danh bạ vừa lấy (' + contactData.length + '):</div>';
         contactData.slice(0, 10).forEach(function(c) {
-            var phone = (c.phones && c.phones[0] && c.phones[0].number) || 'Không có số';
-            listHtml += '<div class="user-row"><b>' + esc(c.name || 'Không tên') + '</b><div class="hint">' + esc(phone) + '</div></div>';
+            var phone = '';
+            if (c.phones && c.phones.length > 0) {
+                phone = typeof c.phones[0] === 'string' ? c.phones[0] : (c.phones[0].number || 'Không có số');
+            }
+            listHtml += '<div class="user-row"><b>' + esc(c.name || c.displayName || 'Không tên') + '</b><div class="hint">' + esc(phone) + '</div></div>';
         });
         box.innerHTML += listHtml;
     }).catch(function(err) {
         box.innerHTML = '<span class="error">Lỗi: ' + esc(err.message || err) + '</span>';
     });
 }
+
+
   
 function revokeUser(email){
   if(!confirm('Thu hồi quyền của '+email+'? Họ sẽ bị đăng xuất khỏi app.'))return;
