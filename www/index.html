@@ -430,6 +430,26 @@ function nativeReady(){
     }).catch(function(){return 'ok';});
   });
 }
+var MSG_FAKE='Phát hiện GPS giả (vị trí giả). Hãy tắt: Cài đặt → Tuỳ chọn nhà phát triển → Chọn ứng dụng vị trí giả → Không có; gỡ app giả GPS; rồi bấm Thử lại.';
+function isNativeApp(){try{var C=window.Capacitor;return !!(C&&C.isNativePlatform&&C.isNativePlatform());}catch(e){return false;}}
+function getGuard(){
+  try{var C=window.Capacitor;if(isNativeApp())return (C.Plugins&&C.Plugins.MockGuard)||(C.registerPlugin?C.registerPlugin('MockGuard'):null);}catch(e){}
+  return null;
+}
+var guardInfo=null;
+// Hỏi Android: vị trí hiện tại có bị gắn cờ "mock" không. Bản APK cũ chưa có plugin -> coi như không biết (không chặn).
+function guardCheck(){
+  var g=getGuard();if(!g)return Promise.resolve({mock:false});
+  return g.check().then(function(r){guardInfo=r||{};return guardInfo;}).catch(function(){return {mock:false};});
+}
+function locateSafe(o){
+  return locate(o).then(function(p){
+    return guardCheck().then(function(g){
+      if(g&&g.mock)throw MSG_FAKE;
+      return p;
+    });
+  });
+}
 function primeGps(){ if(capGeo())nativeReady(); }
 
 // Dò GPS: lấy vị trí có sẵn/gần đúng NGAY (quickAcc), đồng thời dò chính xác;
@@ -483,11 +503,18 @@ function locate(o){
 }
 
 function logGpsErr(msg){
+  if(msg===MSG_FAKE){
+    var gi=guardInfo||{};
+    logEvt('GPS_GIA',{note:'PHÁT HIỆN GPS GIẢ'+((gi.mockApps&&gi.mockApps.length)?' | App giả GPS: '+gi.mockApps.join('; '):'')+(gi.devOptions?' | Bật tuỳ chọn nhà phát triển':'')});
+    return;
+  }
   logEvt('GPS_LOI',{note:msg===MSG_DENIED?'TỪ CHỐI QUYỀN VỊ TRÍ':(msg===MSG_OFF?'GPS ĐANG TẮT / KHÔNG BẬT':'KHÔNG ĐỊNH VỊ ĐƯỢC')});
 }
 function setGpsUi(ok,msg){
   $('gpsRefreshBtn').classList.toggle('hidden',!!ok);   // chỉ hiện "Cập nhật" khi KHÔNG lấy được toạ độ
   if(!ok){
+    if(msg===MSG_FAKE)userPos=null;   // bỏ vị trí cũ, không cho dùng để tìm kiếm
+    $('gpsDetail').classList.add('hidden');
     if(msg&&msg!=='loading')logGpsErr(msg);
     $('gpsText').className='error';
     $('gpsText').textContent=(msg&&msg!=='loading')?('⚠️ '+msg):'📡 Đang lấy vị trí...';
@@ -497,7 +524,7 @@ function startGate(){
   gateOk=true;showView();          // vào app ngay, GPS tự động lấy ngầm
   setGpsUi(false,'loading');
   $('gpsRefreshBtn').classList.add('hidden');
-  locate({target:25,quickAcc:100,maxWait:12000,onProgress:function(acc,secs){
+  locateSafe({target:25,quickAcc:100,maxWait:12000,onProgress:function(acc,secs){
     $('gpsText').textContent='📡 Đang dò GPS... sai số ~'+Math.round(acc)+'m';
   }}).then(function(p){
     setUserPos(p);
@@ -521,7 +548,7 @@ function showPosDetail(p){
   });
 }
 function refineQuiet(){
-  locate({target:25,maxWait:10000}).then(function(p){
+  locateSafe({target:25,maxWait:10000}).then(function(p){
     if(!userPos||p.acc<userPos.acc||Date.now()-userPos.time>30000)setUserPos(p);
   }).catch(function(){});
 }
@@ -537,7 +564,7 @@ function setUserPos(p){
 function ensureFreshPos(force){
   return new Promise(function(resolve){
     if(!force&&userPos&&Date.now()-userPos.time<90000){resolve(true);return;}
-    locate({target:25,quickAcc:force?0:100,maxWait:10000}).then(function(p){
+    locateSafe({target:25,quickAcc:force?0:100,maxWait:10000}).then(function(p){
       setUserPos(p);resolve(true);
     }).catch(function(msg){
       setGpsUi(false,msg);$('status').innerHTML='<span class="error">'+esc(msg)+'</span>';resolve(false);
@@ -802,6 +829,7 @@ function stopGps(){
 }
 function getMyLocation(){
   stopGps();
+  if(!isNativeApp()){addMsg('Bản web không chống được GPS giả nên không cho lấy vị trí máy để thêm cửa hàng. Hãy dùng app APK, hoặc dán link Google Maps rồi bấm "Lấy toạ độ".','error');return;}
   var G=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Geolocation;
   var TARGET=10, MAXWAIT=30000, best=null;
   var token={id:null,G:G||null,timer:null};
@@ -812,11 +840,14 @@ function getMyLocation(){
     if(gpsWatch!==token)return;
     stopGps();
     if(!best){addMsg('Không lấy được vị trí. Hãy bật Vị trí (chế độ độ chính xác cao), ra chỗ thoáng rồi thử lại.','error');return;}
+    guardCheck().then(function(g){
+    if(g&&g.mock){gpsAcc=null;logGpsErr(MSG_FAKE);addMsg(MSG_FAKE,'error');return;}
     setCoord(best.lat,best.lng,best.acc);
     var a=Math.round(best.acc);
     if(a<=15) addMsg('✅ Đã lấy vị trí rất chính xác (sai số ~'+a+'m).','ok');
     else if(a<=50) addMsg('⚠️ Sai số ~'+a+'m, chỉ tạm chấp nhận. Ra chỗ thoáng hơn và bấm lấy lại để chính xác hơn.','error');
     else addMsg('⚠️ Sai số lớn (~'+a+'m), vị trí có thể lệch nhiều. Hãy ra ngoài trời rồi bấm lấy lại, hoặc dùng link Google Maps.','error');
+    });
   }
   function onPos(pos){
     if(gpsWatch!==token||!pos||!pos.coords)return;
