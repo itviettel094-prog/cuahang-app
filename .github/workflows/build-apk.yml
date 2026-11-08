@@ -62,11 +62,26 @@ jobs:
       - name: Đồng bộ web vào Android
         run: npx cap sync android
 
+      - name: Chỉnh Gradle (bản nhẹ + tăng thời gian chờ tải)
+        run: |
+          P=android/gradle/wrapper/gradle-wrapper.properties
+          sed -i 's/-all\.zip/-bin.zip/' $P
+          sed -i '/^networkTimeout=/d' $P
+          echo "networkTimeout=120000" >> $P
+          cat $P
+
       - name: Build APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          for i in 1 2 3; do
+            echo "=== Lần build $i ==="
+            ./gradlew assembleDebug --no-daemon && exit 0
+            echo "Lỗi, chờ 20 giây rồi thử lại..."
+            sleep 20
+          done
+          echo "Build thất bại sau 3 lần thử"
+          exit 1
 
       - name: Lưu APK (Artifacts)
         uses: actions/upload-artifact@v4
