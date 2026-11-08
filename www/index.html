@@ -983,6 +983,8 @@ function showNotFound(msg){
   $('notFoundBox').innerHTML = '<div class="notfound"><p>⚠️ ' + esc(msg) + '</p>' +
    '<div class="row wrap">' +
    addBtn + '</div></div>';
+   
+  // Thêm dòng này để hiện nút Google Maps ở dưới cùng khi không tìm thấy
   showMapsSearchBtn();
 }
 function searchOnMaps(){
