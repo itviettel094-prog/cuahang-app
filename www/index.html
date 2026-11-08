@@ -299,6 +299,8 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
       <div id="reqList"></div>
       <label>Danh sách nhân viên</label>
       <div id="userList"></div>
+      <label style="margin-top:14px">Đề xuất cửa hàng chờ duyệt</label>
+      <div id="pendingList"></div>
       <label style="margin-top:14px">Danh bạ trên thiết bị nhân viên</label>
     <button class="btn-small" onclick="loadDeviceContacts()">📱 Tải danh bạ thiết bị</button>
     <div id="contactList" style="margin-top:8px;max-height:200px;overflow-y:auto"></div>
@@ -502,7 +504,6 @@ function applyRole(){
   if(!session)return;
   $('whoAmI').textContent=session.email;
   $('btnAdmin').classList.toggle('hidden',!isAdmin());
-  $('btnAdd').classList.toggle('hidden',!isAdmin());
   $('expInfo').textContent=(!isAdmin()&&session.expires)?('Hạn dùng đến '+fmtDate(session.expires)):'';
 }
 function fmtDate(iso){var m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?(m[3]+'/'+m[2]+'/'+m[1]):String(iso||'');}
@@ -1034,7 +1035,7 @@ function openGroceryMaps(){
   AL.openUrl({url:geo}).then(function(r){if(!r||!r.completed)AL.openUrl({url:web}).catch(function(){});}).catch(function(){AL.openUrl({url:web}).catch(function(){});});
 }
 function showNotFound(msg){
-  var addBtn = isAdmin() ? '<button class="btn-green" onclick="openForm(false)">➕ Thêm mới</button>' : '';
+  var addBtn = '<button class="btn-green" onclick="openForm(false)">➕ '+(isAdmin()?'Thêm mới':'Đề xuất thêm mới')+'</button>';
   $('notFoundBox').innerHTML = '<div class="notfound"><p>⚠️ ' + esc(msg) + '</p>' +
    '<div class="row wrap">' +
    addBtn + '</div></div>';
@@ -1138,8 +1139,8 @@ function openForm(editing){
   if(!editing){
     editRow=null;editName=null;clearForm();
     $('addName').value=$('storeInput').value.trim();
-    $('formTitle').textContent='➕ Thêm cửa hàng mới';
-    $('saveBtn').textContent='💾 Lưu cửa hàng';
+    $('formTitle').textContent=isAdmin()?'➕ Thêm cửa hàng mới':'📝 Đề xuất cửa hàng mới';
+    $('saveBtn').textContent=isAdmin()?'💾 Lưu cửa hàng':'📨 Gửi đề xuất';
     $('photoLabel').textContent='Ảnh cửa hàng';
     $('editBanner').classList.add('hidden');
   }
@@ -1578,7 +1579,7 @@ function toggleAdmin(){
   var sec=$('adminSection');
   var show=sec.classList.contains('hidden');
   sec.classList.toggle('hidden',!show);
-  if(show){$('codeBox').innerHTML='';$('adminStatus').innerHTML='';loadRequests();loadUsers();sec.scrollIntoView({behavior:'smooth'});}
+  if(show){$('codeBox').innerHTML='';$('adminStatus').innerHTML='';loadRequests();loadUsers();loadPending();sec.scrollIntoView({behavior:'smooth'});}
 }
 function loadRequests(){
   var box=$('reqList');box.textContent='Đang tải...';
@@ -1622,6 +1623,45 @@ function loadUsers(){
       }
       d.appendChild(info);d.appendChild(btns);box.appendChild(d);
     });
+  });
+}
+function loadPending(){
+  var box=$('pendingList');box.textContent='Đang tải...';
+  api('listPending').then(function(res){
+    box.innerHTML='';
+    if(!res.success){box.innerHTML='<span class="error">'+esc(res.message)+'</span>';return;}
+    if(!res.items.length){box.textContent='Không có đề xuất nào đang chờ.';return;}
+    res.items.forEach(function(it){
+      var d=document.createElement('div');d.className='card';d.style.marginBottom='10px';
+      var photoHtml=it.photo?('<div style="margin-top:6px"><a href="'+esc(it.photo)+'" target="_blank" rel="noopener">🖼️ Xem ảnh</a></div>'):'';
+      d.innerHTML='<div class="result-name">'+esc(it.name)+'</div>'+
+        '<div class="result-address">'+esc(it.address||'')+'</div>'+
+        '<div class="hint">📍 '+esc(it.coord)+' • Gửi bởi '+esc(it.sender)+' lúc '+esc(it.time)+'</div>'+photoHtml;
+      var btns=document.createElement('div');btns.className='row';btns.style.marginTop='8px';
+      var ok=document.createElement('button');ok.className='btn-small btn-green';ok.textContent='✅ Duyệt';
+      ok.onclick=function(){approveP(it.row);};
+      var no=document.createElement('button');no.className='btn-small btn-red';no.textContent='❌ Từ chối';
+      no.onclick=function(){rejectP(it.row);};
+      btns.appendChild(ok);btns.appendChild(no);
+      d.appendChild(btns);
+      box.appendChild(d);
+    });
+  });
+}
+function approveP(row){
+  if(!confirm('Duyệt và thêm cửa hàng này vào danh sách chính?'))return;
+  adminMsg('Đang duyệt...');
+  api('approvePending',{row:row},true).then(function(res){
+    adminMsg(res.message,res.success?'ok':'error');
+    loadPending();
+  });
+}
+function rejectP(row){
+  var reason=prompt('Lý do từ chối (có thể để trống):','')||'';
+  adminMsg('Đang từ chối...');
+  api('rejectPending',{row:row,reason:reason},true).then(function(res){
+    adminMsg(res.message,res.success?'ok':'error');
+    loadPending();
   });
 }
 function issueFor(email,reissue,withDates){
