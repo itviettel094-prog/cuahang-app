@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Tìm cửa hàng</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{font-family:'Segoe UI',Roboto,Arial,sans-serif;margin:0;padding:16px;padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(24px + env(safe-area-inset-bottom));background:#f5f6f8;color:#202124}
@@ -84,6 +86,55 @@ textarea#impText{width:100%;padding:12px 14px;border:1px solid #dadce0;border-ra
 .imp-in{font-weight:600;word-break:break-word}
 .imp-m{margin-top:4px;color:#3c4043;word-break:break-word}
 .imp-btns{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+
+/* ===== GIAO DIỆN XANH LÁ, KHỐI BO TRÒN ===== */
+:root{--g1:#1b7a35;--g2:#2e9e4f;--gtxt:#175c2a;--gbg:#f3fbf5;--gbd:#bfe3c9;--gsoft:#e6f6ea;--gmut:#5f7f68}
+body{font-family:'Be Vietnam Pro','Segoe UI',Roboto,Arial,sans-serif;background:linear-gradient(180deg,#e9f6ec 0%,#d3ebd9 100%);background-attachment:fixed;color:var(--gtxt)}
+.container{background:#fff;border-radius:28px;padding:18px 16px 22px;box-shadow:0 10px 30px rgba(27,122,53,.14)}
+h2,h3{color:var(--g1);text-transform:uppercase;letter-spacing:.3px;font-weight:800}
+h3{font-size:15px}
+.app-title{font-size:17px;line-height:1.3}
+.subtitle,.hint,#status,.who,.gps-bar,.result-address{color:var(--gmut)}
+label{text-transform:uppercase;font-size:11px;font-weight:800;letter-spacing:.3px;color:var(--g1);margin:12px 0 5px}
+input[type=text],input[type=email],input[type=password],input[type=date],textarea#impText{background:var(--gbg);border:1.5px solid var(--gbd);border-radius:12px;color:var(--gtxt);font-family:inherit;font-weight:600;outline:none}
+input::placeholder,textarea::placeholder{color:#8fb99c;font-weight:500}
+input:focus,textarea#impText:focus{border-color:var(--g2);box-shadow:0 0 0 3px rgba(46,158,79,.15)}
+input[type=file]{color:var(--gmut)}
+button{background:var(--g1);border-radius:14px;font-family:inherit;font-weight:800;text-transform:uppercase;letter-spacing:.2px;font-size:14px}
+button:disabled{background:#9db8a5;color:#fff}
+.btn-green{background:var(--g1)}
+.btn-orange{background:#fff8e1;color:#8a5a00;border:1.5px solid #f0d98a}
+.btn-red{background:#fff;color:#c5221f;border:1.5px solid #f3b8b4}
+.btn-small,.btn-small.btn-red{background:#fff;color:var(--g1);border:1.5px solid var(--g1);font-size:12px}
+.btn-small.btn-red{color:#c5221f;border-color:#f3b8b4}
+button.btn-link,.btn-link{background:none;border:none;color:var(--g1);text-transform:none;font-weight:700;font-size:13px}
+.mode.active{background:var(--g1);color:#fff}
+.card,.coord-display,.code-box,.gps-bar{background:var(--gbg);border:1px solid var(--gbd);border-radius:16px}
+.gps-bar{padding:10px 12px}
+.card{padding:14px}
+.g-card{border-style:dashed}
+.g-head{color:var(--g1);text-transform:uppercase;font-size:13px;font-weight:800}
+.result-card{background:var(--gbg)}
+.result-card.selected{border-color:var(--g1);background:var(--gsoft)}
+.result-name{color:var(--g1);font-weight:800}
+.dist,.ok{color:var(--g1)}
+.badge-sheet{background:var(--gsoft);color:var(--g1)}
+.badge-places{background:#e8f0fe;color:#1a73e8}
+.notfound,.edit-banner{background:#fff8e1;border:1px solid #f0d98a;border-radius:16px}
+.suggest{background:#fff;border:1px solid var(--gbd);border-radius:10px}
+.user-row,.req-row,.imp-row{border-top:1px solid var(--gbd)}
+.nav-main,.nav-btn,.map-link{background:var(--g1);border-radius:14px;text-transform:uppercase;font-weight:800;letter-spacing:.2px}
+.nav-main{font-size:15px}
+iframe{border-radius:16px;border:1px solid var(--gbd)}
+.coord-value{color:var(--g1)}
+.imp-m{color:var(--gmut)}
+.steps{color:var(--gtxt)}
+.login-card{background:#fff;border:1px solid var(--gbd);border-radius:24px;box-shadow:none;padding:22px 14px}
+#loginView button,#pwView button{background:var(--g1);color:#fff}
+#loginView button:disabled,#pwView button:disabled{background:#9db8a5}
+#loginView .btn-link,#pwView .btn-link{background:none;color:var(--g1)}
+#loginView input,#pwView input{background:var(--gbg);color:var(--gtxt)}
+.about{border-top:1px solid var(--gbd)}
 </style>
 </head>
 <body>
@@ -169,7 +220,7 @@ textarea#impText{width:100%;padding:12px 14px;border:1px solid #dadce0;border-ra
       <input type="text" id="storeInput" placeholder="Tên cửa hàng hoặc toạ độ" />
       <button id="searchBtn" onclick="doSearch()">Tìm</button>
     </div>
-    <button class="btn-small" style="width:100%;margin:-4px 0 12px;background:#188038" onclick="nearbyMe()">📍 Cửa hàng gần tôi nhất</button>
+    <button class="btn-small" style="width:100%;margin:-4px 0 12px;background:#1b7a35;color:#fff;border:none;font-size:13px" onclick="nearbyMe()">📍 Cửa hàng gần tôi nhất</button>
     <div class="row" style="margin-bottom:14px">
       <button id="btnAdd" class="btn-green" style="flex:1" onclick="openForm(false)">➕ Thêm cửa hàng mới</button>
       <button id="btnAdmin" class="btn-orange hidden" style="flex:1" onclick="toggleAdmin()">🔑 Quản lý truy cập</button>
