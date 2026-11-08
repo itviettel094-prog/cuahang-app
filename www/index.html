@@ -266,6 +266,7 @@ function logout(msg){
 // ---------- BẮT BUỘC BẬT GPS + ĐỊNH VỊ NGƯỜI DÙNG ----------
 var gateOk=false, userPos=null;
 var MSG_DENIED='Ứng dụng chưa được cấp quyền vị trí. Vào Cài đặt → Ứng dụng → Tìm cửa hàng → Quyền → Vị trí → chọn "Cho phép" (bật "Chính xác"), rồi bấm Thử lại.';
+var MSG_OFF='GPS (Vị trí) trên điện thoại đang TẮT. Kéo thanh thông báo xuống, bật "Vị trí", rồi bấm Thử lại.';
 var MSG_FAIL='Không xác định được vị trí. Hãy bật GPS (Vị trí) trong cài đặt điện thoại, chọn chế độ độ chính xác cao, ra chỗ thoáng rồi bấm Thử lại.';
 function capGeo(){return window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Geolocation;}
 function pad(n){return (n<10?'0':'')+n;}
@@ -292,7 +293,10 @@ function locate(o){
     }
     function onErr(err){
       if(best)return;
-      bad((err&&(err.code===1||err.code==='PERMISSION_DENIED'))?MSG_DENIED:MSG_FAIL);
+      var m=err&&String(err.message||'');
+      if(err&&(err.code===1||err.code==='PERMISSION_DENIED'))bad(MSG_DENIED);
+      else if(m&&/not enabled|disabled|turned off|location services/i.test(m))bad(MSG_OFF);
+      else bad(MSG_FAIL);
     }
     timer=setTimeout(finish,maxWait);
     var opts={enableHighAccuracy:true,timeout:maxWait,maximumAge:o.maximumAge||0};
@@ -367,6 +371,25 @@ function navUrl(p){
 function viewUrl(p){
   return 'https://www.google.com/maps/search/?api=1&query='+p.lat+','+p.lng+(p.placeId?'&query_place_id='+encodeURIComponent(p.placeId):'');
 }
+// Trong APK: mở thẳng app Google Maps (chế độ dẫn đường). Không có app -> mở bản web.
+var NAV_MODE={'two-wheeler':'l','driving':'d','walking':'w'};
+function openNavNative(p){
+  var AL=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.AppLauncher;
+  var web=function(){ if(AL)AL.openUrl({url:navUrl(p)}).catch(function(){}); else window.open(navUrl(p),'_blank'); };
+  if(!AL){web();return;}
+  AL.openUrl({url:'google.navigation:q='+p.lat+','+p.lng+'&mode='+(NAV_MODE[travelMode]||'d')})
+    .then(function(r){ if(!r||!r.completed)web(); })
+    .catch(web);
+}
+document.addEventListener('click',function(e){
+  var a=e.target.closest?e.target.closest('a.nav-btn,a.nav-main,a.map-link'):null;
+  if(!a||!(window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.AppLauncher))return;
+  e.preventDefault();e.stopPropagation();
+  var p=a.classList.contains('nav-btn')?currentResults[Number(a.getAttribute('data-i'))]:selected;
+  if(!p||typeof p.lat!=='number')return;
+  if(a.classList.contains('map-link')){window.Capacitor.Plugins.AppLauncher.openUrl({url:viewUrl(p)}).catch(function(){});return;}
+  openNavNative(p);
+},true);
 function markMode(){
   document.querySelectorAll('.mode').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-m')===travelMode);});
 }
