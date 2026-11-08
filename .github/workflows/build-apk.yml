@@ -84,11 +84,12 @@ jobs:
           sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n    <application|' $M
           grep -n "uses-permission" $M
 
-      - name: Nâng compileSdk lên 35 (plugin cập nhật yêu cầu)
+      - name: Nâng compileSdk lên 35 và minSdk lên 23 (plugin cập nhật yêu cầu)
         run: |
           V=android/variables.gradle
           cat $V
           sed -i 's/compileSdkVersion = [0-9]*/compileSdkVersion = 35/' $V
+          sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 23/' $V
           grep -q "android.suppressUnsupportedCompileSdk" android/gradle.properties || echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
           grep -n "compileSdkVersion\|targetSdkVersion\|minSdkVersion" $V
           tail -3 android/gradle.properties
