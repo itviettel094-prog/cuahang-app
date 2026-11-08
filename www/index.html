@@ -11,7 +11,7 @@ body{font-family:'Segoe UI',Roboto,Arial,sans-serif;margin:0;padding:16px;paddin
 h2{margin:0 0 4px}h3{margin:0 0 4px}
 .subtitle{color:#5f6368;margin:0 0 16px;font-size:14px}
 .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.who{font-size:12px;color:#5f6368}
+.who{font-size:12px;color:#5f6368}.app-title{font-size:18px;text-align:center;margin:0 0 10px;letter-spacing:.5px}
 .hidden{display:none!important}
 input[type=text],input[type=email],input[type=password],input[type=date]{width:100%;padding:12px 14px;border:1px solid #dadce0;border-radius:8px;font-size:16px;background:#fff}
 input[type=file]{width:100%;font-size:14px}
@@ -157,9 +157,10 @@ textarea#impText{width:100%;padding:12px 14px;border:1px solid #dadce0;border-ra
 
   <!-- ỨNG DỤNG -->
   <div id="appView" class="hidden">
+    <h2 class="app-title">TÌM KIẾM VỊ TRÍ CÁC CỬA HÀNG</h2>
     <div class="topbar">
-      <div class="who"><span id="whoAmI"></span></div>
-      <div class="who" id="expInfo"></div>
+      <div class="who"><span id="whoAmI"></span><div id="expInfo" style="margin-top:2px"></div></div>
+      <button class="btn-link" onclick="logout()">Đăng xuất</button>
     </div>
     <p class="subtitle">Tìm theo tên cửa hàng hoặc toạ độ. Cửa hàng gần bạn nhất sẽ hiện lên đầu.</p>
     <div class="gps-bar"><div style="flex:1;min-width:0"><span id="gpsText">📡 Đang lấy vị trí...</span><div id="gpsDetail" class="gps-detail hidden"></div></div><button id="gpsRefreshBtn" class="btn-link hidden" onclick="refreshPos()">🔄 Cập nhật</button></div>
@@ -179,7 +180,7 @@ textarea#impText{width:100%;padding:12px 14px;border:1px solid #dadce0;border-ra
     <!-- NHẬP FILE / LINK -->
     <div id="importSection" class="card hidden">
       <h3>📥 Nhập danh sách / link</h3>
-      <p class="hint" style="margin-top:0">Dán <b>link Google Sheets</b> hoặc chọn file .xlsx / .csv: app tự quét <b>tất cả các tab</b>, tìm cột "Tên điểm bán / Cửa hàng / Tạp hoá / Shop" rồi tìm từng tên (có đối chiếu thêm đường, phường, tỉnh). Cũng có thể dán trực tiếp mỗi dòng 1 tên, 1 link Google Maps hoặc 1 toạ độ. Tối đa 500 dòng mỗi lần.</p>
+      <p class="hint" style="margin-top:0">Dán <b>link Google Sheets</b> hoặc chọn file .xlsx / .csv: app tự quét <b>tất cả các tab</b>, tìm cột "Tên điểm bán / Cửa hàng / Tạp hoá / Shop", chỉ giữ các dòng thuộc <b>Hà Nội</b> (HN1, HN2, Hà Nội, Hanoi...) rồi tìm từng tên (có đối chiếu thêm đường, phường, tỉnh). Cũng có thể dán trực tiếp mỗi dòng 1 tên, 1 link Google Maps hoặc 1 toạ độ. Tối đa 500 dòng mỗi lần.</p>
       <textarea id="impText" rows="5" oninput="impQueue=null" placeholder="https://docs.google.com/spreadsheets/d/...&#10;hoặc: Thành Đạt&#10;https://maps.app.goo.gl/xxxxx&#10;20.925094 105.851222"></textarea>
       <input type="file" id="impFile" accept=".csv,.tsv,.txt,.xlsx,.xls" onchange="impLoadFile(this)" style="margin-top:8px" />
       <div class="row" style="margin-top:10px">
@@ -1139,6 +1140,8 @@ function impNorm(s){return String(s==null?'':s).toLowerCase().normalize('NFD').r
 // Chấm điểm tiêu đề cột: có phải cột TÊN CỬA HÀNG / ĐIỂM BÁN / TẠP HOÁ / SHOP không
 function impNameScore(h){
   h=impNorm(h);if(!h)return 0;
+  if(/(tong hop|danh sach|kvtt|activation|theo |tong cong|bang )/.test(h))return 0;   // tiêu đề của bảng tổng hợp, không phải cột tên cửa hàng
+  if(h.split(' ').length>6)return 0;
   if(/^(ma|so|stt|nguoi|ho ten|ho va ten|sdt|dien thoai|duong|phuong|xa|quan|huyen|thanh pho|tinh|loai|khu vuc|sup|asm|nvbh|npp|ghi chu|dia chi|toa do|ngay|trang thai)( |$)/.test(h))return 0;
   if(h==='ten diem ban')return 100;
   if(/^ten (cua hang|tap hoa|shop|dai ly|diem ban|cua tiem|tiem)/.test(h))return 95;
@@ -1159,15 +1162,27 @@ function impExtract(rows,sheetName){
   var cCode=find(/^ma (diem ban|cua hang|kh|khach hang|shop)/),cStreet=find(/^(duong|dia chi|so nha)/),cWard=find(/^(phuong|xa)( |$)/),cDist=find(/^(quan|huyen)( |$)/),cCity=find(/^(thanh pho|tinh|tp)( |$)/);
   function cell(row,i){return i<0?'':String(row[i]==null?'':row[i]).trim();}
   var items=[],nameHdr=hdr[best.c];
-  for(r=best.r+1;r<rows.length;r++){
-    row=rows[r]||[];
+  // Dòng có liên quan Hà Nội: bất kỳ ô nào là HN, HN1, HN2, Hà Nội, Hanoi, Hànội...
+  var HN_RE=/(^| )(hn ?[0-9]?|ha ?noi)( |$)/;
+  function rowHN(row){for(var i=0;i<row.length;i++){if(HN_RE.test(impNorm(row[i])))return true;}return false;}
+  var dataRows=[],hnCount=0;
+  for(r=best.r+1;r<rows.length;r++){row=rows[r]||[];if(!cell(row,best.c))continue;dataRows.push(row);if(rowHN(row))hnCount++;}
+  var useHN=hnCount>0;   // file không có dấu hiệu Hà Nội nào thì không lọc, để khỏi mất hết dữ liệu
+  // Giá trị chắc chắn không phải tên cửa hàng: tên vùng, dòng tổng, mã, số
+  var BAD_RE=/^(kvtt|tong|total|cong|stt|ten diem ban|ha noi ?[0-9]|tay bac|dong bac|song hong ?[0-9]?|hn ?[0-9]|hn)( |$)/;
+  var skipHN=0,skipBad=0;
+  for(var di=0;di<dataRows.length;di++){
+    row=dataRows[di];
     var nm=cell(row,best.c);
-    if(!nm||impNorm(nm)===nameHdr)continue;
+    var nn=impNorm(nm);
+    if(!nn||nn===nameHdr||nn.length<2||/^[0-9 ]+$/.test(nn)||/^[a-z] ?[0-9]{5,}$/.test(nn)||BAD_RE.test(nn)){skipBad++;continue;}
+    if(useHN&&!rowHN(row)){skipHN++;continue;}
     var addr=[cell(row,cStreet),cell(row,cWard),cell(row,cDist),cell(row,cCity)].filter(Boolean).join(', ');
     var code=cell(row,cCode);
     items.push({input:nm,addr:addr,info:(code?'Mã '+code:'')+(code&&addr?' • ':'')+addr,sheet:sheetName||''});
   }
-  return items.length?{items:items,col:String(rows[best.r][best.c]).trim(),n:items.length}:null;
+  var note=(useHN?', đã lọc Hà Nội, bỏ '+skipHN+' dòng ngoài Hà Nội':'')+(skipBad?', bỏ '+skipBad+' dòng không phải tên cửa hàng':'');
+  return items.length?{items:items,col:String(rows[best.r][best.c]).trim(),n:items.length,sc:best.sc,note:note}:null;
 }
 
 // --- đọc file ---
@@ -1204,11 +1219,16 @@ function impLoadXlsx(){
 }
 // Quét TẤT CẢ các tab trong file Excel, tab nào có cột tên cửa hàng thì lấy
 function impFromWorkbook(wb){
-  var all=[],log=[];
+  var all=[],log=[],exs=[];
   wb.SheetNames.forEach(function(n){
     var rows=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:false,defval:''});
     var ex=impExtract(rows,n);
-    if(ex){all=all.concat(ex.items);log.push('«'+n+'»: cột "'+ex.col+'" ('+ex.n+' dòng)');}
+    if(ex){ex.sheetName=n;exs.push(ex);}
+  });
+  var top=0;exs.forEach(function(e){if(e.sc>top)top=e.sc;});
+  exs.forEach(function(e){
+    if(top>=90&&e.sc<90)return;   // đã có tab chuẩn "Tên điểm bán" thì bỏ tab chỉ khớp mơ hồ
+    all=all.concat(e.items);log.push('«'+e.sheetName+'»: cột "'+e.col+'" ('+e.n+' dòng'+(e.note||'')+')');
   });
   if(all.length)return {items:all,log:log,tabs:wb.SheetNames.length};
   var rows0=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''});
@@ -1245,7 +1265,7 @@ function impLoadFile(inp){
     var t=String(e.target.result);
     var rows=ext==='txt'?t.split(/\r?\n/).map(function(l){return [l];}):impParseCsv(t);
     var ex=impExtract(rows,'');
-    if(ex)impStart({items:ex.items,log:['cột "'+ex.col+'" ('+ex.n+' dòng)'],tabs:1});
+    if(ex)impStart({items:ex.items,log:['cột "'+ex.col+'" ('+ex.n+' dòng'+(ex.note||'')+')'],tabs:1});
     else impStart({items:impPickCol(rows).map(function(s){return {input:s};}),log:[],tabs:1,fallback:true});
   };
   rd.onerror=function(){impMsg('Không đọc được file.','error');};
