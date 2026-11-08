@@ -1,0 +1,12 @@
+{
+  "name": "cuahang-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "App Android Tìm cửa hàng",
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/cli": "^6.1.2",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/geolocation": "^6.0.1"
+  }
+}

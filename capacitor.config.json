@@ -1,0 +1,6 @@
+{
+  "appId": "com.cuahang.tim",
+  "appName": "Tìm cửa hàng",
+  "webDir": "www",
+  "server": { "androidScheme": "https" }
+}
