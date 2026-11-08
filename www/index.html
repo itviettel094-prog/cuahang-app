@@ -158,8 +158,8 @@ textarea#impText{width:100%;padding:12px 14px;border:1px solid #dadce0;border-ra
   <!-- ỨNG DỤNG -->
   <div id="appView" class="hidden">
     <div class="topbar">
-      <h2>🔍 Tìm cửa hàng</h2>
-      <div style="text-align:right"><div class="who"><span id="whoAmI"></span><span id="adminBadge" class="badge badge-admin hidden">QUẢN TRỊ</span></div><div class="who" id="expInfo"></div><button class="btn-link" onclick="logout()">Đăng xuất</button></div>
+      <div class="who"><span id="whoAmI"></span></div>
+      <div class="who" id="expInfo"></div>
     </div>
     <p class="subtitle">Tìm theo tên cửa hàng hoặc toạ độ. Cửa hàng gần bạn nhất sẽ hiện lên đầu.</p>
     <div class="gps-bar"><div style="flex:1;min-width:0"><span id="gpsText">📡 Đang lấy vị trí...</span><div id="gpsDetail" class="gps-detail hidden"></div></div><button id="gpsRefreshBtn" class="btn-link hidden" onclick="refreshPos()">🔄 Cập nhật</button></div>
@@ -363,7 +363,6 @@ function saveSession(){try{localStorage.setItem('session',JSON.stringify(session
 function applyRole(){
   if(!session)return;
   $('whoAmI').textContent=session.email;
-  $('adminBadge').classList.toggle('hidden',!isAdmin());
   $('btnAdmin').classList.toggle('hidden',!isAdmin());
   $('btnAdd').classList.toggle('hidden',!isAdmin());
   $('expInfo').textContent=(!isAdmin()&&session.expires)?('Hạn dùng đến '+fmtDate(session.expires)):'';
@@ -516,6 +515,15 @@ function getEnabler(){
 function nativeReady(){
   var G=capGeo();
   if(!G)return Promise.resolve('ok');
+  // Nếu hộp thoại "Bật vị trí" / "Cho phép vị trí" hiện ra (chờ quá 0,4s) thì phát âm thanh cấp quyền GPS NGAY.
+  // Nếu GPS đã bật và đã có quyền thì xong trong tích tắc, không phát gì.
+  var settled=false;
+  var t=setTimeout(function(){ if(!settled)playSound('gps'); },400);
+  function end(v){
+    settled=true;clearTimeout(t);
+    if(v==='ok'){ if(sndPending==='gps')sndPending=null; if(sndCur&&sndCur===sndObj.gps)stopSound(); }   // đã bật xong: tắt tiếng
+    return v;
+  }
   var E=getEnabler();
   var step1=E?E.enable().then(function(r){return (r&&r.enabled)?'ok':'off';}).catch(function(){return 'ok';}):Promise.resolve('ok');
   return step1.then(function(s){
@@ -523,7 +531,7 @@ function nativeReady(){
     return G.requestPermissions().then(function(st){
       return (st&&st.location==='denied')?'denied':'ok';
     }).catch(function(){return 'ok';});
-  });
+  }).then(end);
 }
 var MSG_FAKE='Phát hiện GPS giả (vị trí giả). Hãy tắt: Cài đặt → Tuỳ chọn nhà phát triển → Chọn ứng dụng vị trí giả → Không có; gỡ app giả GPS; rồi bấm Thử lại.';
 function isNativeApp(){try{var C=window.Capacitor;return !!(C&&C.isNativePlatform&&C.isNativePlatform());}catch(e){return false;}}
@@ -552,19 +560,22 @@ function locateSafe(o){
     });
   });
 }
-// Trước khi đăng nhập: nếu chưa bật / chưa cấp quyền GPS thì phát âm thanh "cấp quyền GPS"
+// Ngay từ màn hình đăng nhập: nếu chưa bật / chưa cấp quyền GPS thì hiện hộp thoại xin quyền và phát âm thanh "cấp quyền GPS" cùng lúc
 function primeGps(){
-  if(capGeo()){
-    nativeReady().then(function(st){ if(st!=='ok')playSound('gps'); });
-    return;
+  if(capGeo()){nativeReady();return;}   // APK: nativeReady tự phát âm thanh khi hộp thoại hiện ra
+  if(!navigator.geolocation)return;
+  function stopIfPlaying(){ if(sndPending==='gps')sndPending=null; if(sndCur&&sndCur===sndObj.gps)stopSound(); }
+  function ask(){
+    playSound('gps');
+    navigator.geolocation.getCurrentPosition(stopIfPlaying,function(){},{enableHighAccuracy:false,timeout:15000,maximumAge:60000});   // làm trình duyệt hiện hộp thoại xin quyền
   }
   try{
     if(navigator.permissions&&navigator.permissions.query){
-      navigator.permissions.query({name:'geolocation'}).then(function(r){
-        if(r.state!=='granted')playSound('gps');
-      }).catch(function(){});
+      navigator.permissions.query({name:'geolocation'}).then(function(r){ if(r.state!=='granted')ask(); }).catch(ask);
+      return;
     }
   }catch(e){}
+  ask();
 }
 
 // Dò GPS: lấy vị trí có sẵn/gần đúng NGAY (quickAcc), đồng thời dò chính xác;
