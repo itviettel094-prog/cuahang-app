@@ -897,7 +897,10 @@ function doSearch(){
         showResults(res.results,'sheet');
       } else {
         playSound('error');
-        $('status').textContent='';showNotFound(res.message);
+        $('status').textContent='';
+        showNotFound(res.message);
+        // Ép hiển thị luôn nút Google Maps ngay tại đây để không bị sót
+        showMapsSearchBtn();
       }
     });
   });
