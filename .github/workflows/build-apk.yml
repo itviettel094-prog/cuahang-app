@@ -22,16 +22,33 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
+        continue-on-error: true   # GitHub lỗi 504 thì dùng Node cài sẵn trên máy
         with:
           node-version: 20
 
       - uses: actions/setup-java@v4
+        continue-on-error: true   # GitHub lỗi 504 thì dùng Java 17 cài sẵn trên máy
         with:
           distribution: temurin
           java-version: 17
 
+      - name: Kiểm tra Node và Java
+        run: |
+          node -v
+          npm -v
+          if [ -n "$JAVA_HOME_17_X64" ]; then echo "JAVA_HOME=$JAVA_HOME_17_X64" >> $GITHUB_ENV; fi
+          java -version
+
       - name: Cài thư viện
         run: npm install
+
+      - name: Cài plugin cập nhật từ xa (Capgo Updater)
+        run: |
+          MAJOR=$(node -p "require('@capacitor/core/package.json').version.split('.')[0]")
+          echo "Capacitor major: $MAJOR"
+          npm install @capgo/capacitor-updater@$MAJOR || npm install @capgo/capacitor-updater
+          node -e "const fs=require('fs');const f='capacitor.config.json';const c=JSON.parse(fs.readFileSync(f,'utf8'));c.plugins=c.plugins||{};c.plugins.CapacitorUpdater={autoUpdate:false};fs.writeFileSync(f,JSON.stringify(c,null,2));"
+          cat capacitor.config.json
 
       - name: Tạo dự án Android
         run: npx cap add android
@@ -66,6 +83,14 @@ jobs:
           M=android/app/src/main/AndroidManifest.xml
           sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n    <application|' $M
           grep -n "uses-permission" $M
+
+      - name: Gắn địa chỉ cập nhật vào app
+        run: |
+          OWNER=$(echo "${GITHUB_REPOSITORY%%/*}" | tr 'A-Z' 'a-z')
+          REPO="${GITHUB_REPOSITORY##*/}"
+          VER="1.0.${{ github.run_number }}"
+          sed -i "s|__UPDATE_BASE__|https://$OWNER.github.io/$REPO|g; s|__BUILD_VER__|$VER|g" www/index.html
+          grep -n "https://$OWNER.github.io" www/index.html | head -2
 
       - name: Đồng bộ web vào Android
         run: npx cap sync android
@@ -129,8 +154,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - name: Tạo gói cập nhật từ xa (bundle.zip + version.json)
+        run: |
+          OWNER=$(echo "${GITHUB_REPOSITORY%%/*}" | tr 'A-Z' 'a-z')
+          REPO="${GITHUB_REPOSITORY##*/}"
+          VER="1.0.${{ github.run_number }}"
+          sed -i "s|__UPDATE_BASE__|https://$OWNER.github.io/$REPO|g; s|__BUILD_VER__|$VER|g" www/index.html
+          mkdir site
+          cp -r www/. site/
+          (cd www && zip -qr ../site/bundle-$VER.zip .)
+          echo "{\"version\":\"$VER\",\"file\":\"bundle-$VER.zip\"}" > site/version.json
+          cat site/version.json
+          ls -la site
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: www
+          path: site
       - id: deploy
         uses: actions/deploy-pages@v4
