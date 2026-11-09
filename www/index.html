@@ -713,7 +713,15 @@ function logAdminFake(g){
 }
 function guardCheck(){
   var g=getGuard();if(!g)return Promise.resolve({mock:false});
-  return g.check().then(function(r){guardInfo=r||{};return guardInfo;}).catch(function(){return {mock:false};});
+  var timedOut=false;
+  var timeoutP=new Promise(function(res){
+    setTimeout(function(){ timedOut=true; res({mock:false,_timeout:true}); },5000);
+  });
+  var checkP=g.check().then(function(r){
+    if(timedOut)return null; // native trả lời trễ, đã dùng kết quả timeout rồi
+    guardInfo=r||{};return guardInfo;
+  }).catch(function(){ return timedOut?null:{mock:false}; });
+  return Promise.race([checkP,timeoutP]).then(function(r){ return r||{mock:false}; });
 }
 function locateSafe(o){
   return locate(o).then(function(p){
@@ -803,7 +811,11 @@ function locate(o){
 
 function logGpsErr(msg){
   playSound(msg===MSG_FAKE?'fake':'gps');
-  if(msg===MSG_FAKE){logEvt('GPS_GIA',{});return;}
+  if(msg===MSG_FAKE){
+    var g=guardInfo||{};
+    logEvt('GPS_GIA',{osFlaggedMock:!!g.osFlaggedMock,mockApps:g.mockApps||[],rootOrXposed:!!g.rootOrXposed,devOptions:!!g.devOptions});
+    return;
+  }
   logEvt('GPS_LOI',{note:msg});
 }
 function setGpsUi(ok,msg){
