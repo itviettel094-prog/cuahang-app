@@ -5,10 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Tìm cửa hàng</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;700;800&display=swap" media="print" onload="this.media='all'">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-button,input,a,label{touch-action:manipulation}
 body{font-family:'Segoe UI',Roboto,Arial,sans-serif;margin:0;padding:16px;padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(24px + env(safe-area-inset-bottom));background:#f5f6f8;color:#202124}
 .container{max-width:640px;margin:0 auto}
 h2{margin:0 0 4px}h3{margin:0 0 4px}
@@ -60,7 +59,7 @@ label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
 .gps-detail{margin-top:3px;font-size:12px;color:#3c4043;line-height:1.4}.gps-detail b{font-family:Consolas,"Courier New",monospace;font-weight:600}
 .g-head{font-weight:700;font-size:15px;margin:18px 0 4px;color:#1a73e8}.g-card{border-style:dashed}
 .gps-bar{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#5f6368;margin-bottom:10px}
-.center{display:flex;align-items:flex-start;justify-content:center;padding:4vh 0 8px}
+.center{min-height:calc(100vh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:center}
 .login-card{width:100%;max-width:400px;background:#fff;border:1px solid #e0e0e0;border-radius:16px;padding:26px 22px;box-shadow:0 4px 18px rgba(0,0,0,.07);text-align:center}
 .login-card label{text-align:left}
 .login-card .subtitle{margin-bottom:6px}
@@ -87,11 +86,15 @@ textarea#impText{width:100%;padding:12px 14px;border:1px solid #dadce0;border-ra
 .imp-in{font-weight:600;word-break:break-word}
 .imp-m{margin-top:4px;color:#3c4043;word-break:break-word}
 .imp-btns{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+#admCamVideo{width:100%;max-height:260px;background:#000;border-radius:12px;display:block;object-fit:cover}
+#admCamShotImg{max-width:100%;border-radius:12px;margin-top:8px}
+.adm-sub{border-top:1px dashed var(--gbd,#bfe3c9);margin-top:16px;padding-top:14px}
+.photo-row{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--gbd,#eee);padding:8px 0;font-size:13px}
 
 /* ===== GIAO DIỆN XANH LÁ, KHỐI BO TRÒN ===== */
 :root{--g1:#1b7a35;--g2:#2e9e4f;--gtxt:#175c2a;--gbg:#f3fbf5;--gbd:#bfe3c9;--gsoft:#e6f6ea;--gmut:#5f7f68}
-body{font-family:'Be Vietnam Pro','Segoe UI',Roboto,Arial,sans-serif;background:#dcefe1;color:var(--gtxt)}
-.container{background:#fff;border-radius:28px;padding:18px 16px 22px;box-shadow:0 2px 8px rgba(27,122,53,.12)}
+body{font-family:'Be Vietnam Pro','Segoe UI',Roboto,Arial,sans-serif;background:linear-gradient(180deg,#e9f6ec 0%,#d3ebd9 100%);background-attachment:fixed;color:var(--gtxt)}
+.container{background:#fff;border-radius:28px;padding:18px 16px 22px;box-shadow:0 10px 30px rgba(27,122,53,.14)}
 h2,h3{color:var(--g1);text-transform:uppercase;letter-spacing:.3px;font-weight:800}
 h3{font-size:15px}
 .app-title{font-size:17px;line-height:1.3}
@@ -136,19 +139,6 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
 #loginView .btn-link,#pwView .btn-link{background:none;color:var(--g1)}
 #loginView input,#pwView input{background:var(--gbg);color:var(--gtxt)}
 .about{border-top:1px solid var(--gbd)}
-#toast{position:fixed;left:50%;top:50%;z-index:9999;width:min(88vw,360px);padding:16px 18px;border-radius:16px;background:#1b7a35;color:#fff;font-size:14px;font-weight:600;line-height:1.5;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.25);transform:translate(-50%,-50%) scale(.9);opacity:0;pointer-events:none;transition:transform .35s ease,opacity .35s ease}
-#toast.show{transform:translate(-50%,-50%) scale(1);opacity:1}
-#toast.out{transform:translate(-190%,-50%);opacity:0;transition:transform .6s ease-in,opacity .6s ease-in}
-#toast.err{background:#c5221f}
-#btnAdd.noadd{opacity:.55}
-#loader{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(214,236,220,.72);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;touch-action:none}
-#loader.on{opacity:1;visibility:visible}
-#loader .ld-box{width:min(86vw,340px);background:#fff;border:1px solid #bfe3c9;border-radius:20px;padding:20px 18px;text-align:center;box-shadow:0 6px 20px rgba(27,122,53,.22)}
-#loader .ld-title{min-height:48px;font-size:16px;font-weight:800;color:#1b7a35;line-height:1.4}
-#loader .ld-bar{height:8px;background:#e6f6ea;border-radius:8px;overflow:hidden;margin:12px 0 8px}
-#loader .ld-fill{height:100%;width:0;background:#2e9e4f;border-radius:8px;transition:width .15s linear}
-#loader .ld-pct{font-size:22px;font-weight:800;color:#1b7a35}
-#loader .ld-step{font-size:12px;color:#5f7f68;margin-top:4px;min-height:32px;line-height:1.4}
 </style>
 </head>
 <body>
@@ -166,11 +156,11 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
       <div id="loginStatus" style="margin:10px 0;font-size:14px"></div>
       <div class="row">
         <button id="loginBtn" onclick="doLogin()" style="flex:1">Đăng nhập</button>
-        <button id="reqBtn" class="btn-orange btn-req" onclick="requestCode()" disabled>Đăng ký</button>
+        <button id="reqBtn" class="btn-orange btn-req" onclick="requestCode()" disabled>📨 Gửi yêu cầu cấp mã</button>
       </div>
-      <div class="hint" style="text-align:center;margin-top:10px">Nhập địa chỉ Gmail cá nhân của bạn vào và bấm "Đăng ký" nếu chưa có tài khoản.</div>
+      <div class="hint" style="text-align:center;margin-top:10px">Nhập địa chỉ Gmail cá nhân của bạn vào và bấm "Gửi yêu cầu cấp mã" nếu chưa có tài khoản.</div>
       <div class="about">
-        <b>Tìm cửa hàng</b> • Phiên bản <span id="verText">1.0</span><br>
+        <b>Tìm cửa hàng</b> • Phiên bản 1.0<br>
         Phần mềm được phát triển bởi <b>IT Team Trần Thị Dung</b>.<br>
         Phần mềm nội bộ, chỉ dành cho nhân viên được cấp quyền.<br>
         © 2026 IT Team Trần Thị Dung. Bảo lưu mọi quyền.
@@ -203,33 +193,6 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
     </div>
   </div>
 
-  <!-- ĐIỀU KHOẢN SỬ DỤNG VÀ CHÍNH SÁCH BẢO MẬT -->
-  <div id="termsView" class="hidden center">
-    <div class="login-card" style="max-width: 520px; text-align: left;">
-      <h2 style="text-align: center; margin-bottom: 12px;">📜 ĐIỀU KHOẢN VÀ CHÍNH SÁCH SỬ DỤNG</h2>
-      <div style="font-size: 12px; color: #5f6368; max-height: 220px; overflow-y: auto; border: 1px solid #dadce0; padding: 10px; border-radius: 8px; margin-bottom: 14px; line-height: 1.5;">
-        <b>1. TRÁCH NHIỆM CỦA NGƯỜI DÙNG</b><br>
-        - Không chia sẻ tài khoản cho bất kỳ ai dưới bất kỳ hình thức nào.<br>
-        - Bạn chỉ cần gửi yêu cầu cấp mã và báo lại cho IT để được cung cấp mật khẩu.<br>
-        - Sau khi đăng nhập thành công, hệ thống sẽ yêu cầu bạn đổi mật khẩu ngay.<br><br>
-
-        <b>2. DỮ LIỆU THIẾT BỊ</b><br>
-        - Ứng dụng có thể yêu cầu quyền truy cập Vị trí (GPS) và Máy ảnh để phục vụ việc tìm cửa hàng, chỉ đường và báo cáo công việc.<br><br>
-
-        <b>3. THU HỒI QUYỀN VÀ HẾT HẠN</b><br>
-        - Quản trị viên có quyền khóa tài khoản hoặc ấn định thời hạn sử dụng nếu phát hiện vi phạm.<br>
-        - Khi ứng dụng hết hạn hoặc bị thu hồi, dữ liệu lưu trên thiết bị sẽ được xóa.<br><br>
-
-        <b>4. XÁC NHẬN</b><br>
-        Bằng việc bấm "Tôi đồng ý", bạn xác nhận đã đọc, hiểu và đồng ý các điều khoản trên, bao gồm việc ứng dụng thu thập vị trí của bạn. Nếu bấm "Từ chối", ứng dụng sẽ đóng lại.
-      </div>
-      <div class="row" style="gap: 10px;">
-        <button class="btn-red" style="flex: 1; font-size: 13px;" onclick="onRejectTerms()">Từ chối</button>
-        <button class="btn-green" style="flex: 1; font-size: 13px;" onclick="onAcceptTerms()">Tôi đồng ý</button>
-      </div>
-    </div>
-  </div>
-
   <!-- BẮT BUỘC BẬT GPS -->
   <div id="gateView" class="hidden">
     <h2>📡 Bật GPS để tiếp tục</h2>
@@ -251,25 +214,22 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
   <div id="appView" class="hidden">
     <h2 class="app-title">TÌM KIẾM VỊ TRÍ CÁC CỬA HÀNG</h2>
     <div class="topbar">
-      <div class="who"><span id="whoAmI"></span><div id="expInfo" style="margin-top:2px"></div><div id="verInfo" style="margin-top:2px"></div></div>
+      <div class="who"><span id="whoAmI"></span><div id="expInfo" style="margin-top:2px"></div></div>
       <button class="btn-link" onclick="logout()">Đăng xuất</button>
     </div>
     <p class="subtitle">Tìm theo tên cửa hàng hoặc toạ độ. Cửa hàng gần bạn nhất sẽ hiện lên đầu.</p>
-    <div class="gps-bar"><div style="flex:1;min-width:0"><span id="gpsText">📡 Đang lấy vị trí...</span><div id="gpsDetail" class="gps-detail hidden"></div></div><button id="gpsSettingsBtn" class="btn-link hidden" onclick="openLocationSettings()">📍 Mở cài đặt vị trí</button><button id="gpsRefreshBtn" class="btn-link hidden" onclick="refreshPos()">🔄 Cập nhật</button></div>
+    <div class="gps-bar"><div style="flex:1;min-width:0"><span id="gpsText">📡 Đang lấy vị trí...</span><div id="gpsDetail" class="gps-detail hidden"></div></div><button id="gpsRefreshBtn" class="btn-link hidden" onclick="refreshPos()">🔄 Cập nhật</button></div>
 
     <div class="row" style="margin-bottom:12px">
       <input type="text" id="storeInput" placeholder="Tên cửa hàng hoặc toạ độ" />
       <button id="searchBtn" onclick="doSearch()">Tìm</button>
     </div>
-   <!-- Gom 2 nút vào chung 1 hàng ngang (.row) -->
     <button class="btn-small" style="width:100%;margin:-4px 0 12px;background:#1b7a35;color:#fff;border:none;font-size:13px" onclick="nearbyMe()">📍 Cửa hàng gần tôi nhất</button>
-
     <div class="row" style="margin-bottom:14px">
       <button id="btnAdd" class="btn-green" style="flex:1" onclick="openForm(false)">➕ Thêm cửa hàng mới</button>
       <button id="btnAdmin" class="btn-orange hidden" style="flex:1" onclick="toggleAdmin()">🔑 Quản lý truy cập</button>
     </div>
-    
-  
+
     <button class="btn-small" style="width:100%;margin:-6px 0 14px" onclick="toggleImport()">📥 Nhập file / link để tìm hàng loạt</button>
 
     <!-- NHẬP FILE / LINK -->
@@ -307,8 +267,34 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
       <div id="reqList"></div>
       <label>Danh sách nhân viên</label>
       <div id="userList"></div>
-      <label style="margin-top:14px">Đề xuất cửa hàng chờ duyệt</label>
-      <div id="pendingList"></div>
+
+      <div class="adm-sub">
+        <h3>📷 Chụp ảnh cửa hàng (ngay trên máy này)</h3>
+        <p class="hint" style="margin-top:0">Dùng camera của máy bạn đang cầm để chụp mẫu / hướng dẫn, không xem được camera của máy khác.</p>
+        <video id="admCamVideo" class="hidden" autoplay playsinline muted></video>
+        <canvas id="admCamCanvas" class="hidden"></canvas>
+        <img id="admCamShotImg" class="hidden" />
+        <div id="admCamMsg" class="hint"></div>
+        <div class="row wrap" style="margin-top:8px">
+          <button id="admCamStartBtn" class="btn-small" onclick="admCamStart()">🎥 Bật camera</button>
+          <button id="admCamShotBtn" class="btn-small hidden" onclick="admCamShot()">📸 Chụp</button>
+          <button id="admCamStopBtn" class="btn-small btn-red hidden" onclick="admCamStop()">⏹️ Tắt camera</button>
+        </div>
+        <div id="admCamActions" class="row wrap hidden" style="margin-top:8px">
+          <button class="btn-small" onclick="admCamDownload()">💾 Tải ảnh về máy</button>
+          <button class="btn-small btn-green" onclick="admCamUse()">➕ Dùng ảnh này để thêm cửa hàng</button>
+        </div>
+      </div>
+
+      <div class="adm-sub">
+        <h3>🖼️ Tra ảnh cửa hàng đã gửi</h3>
+        <p class="hint" style="margin-top:0">Nhập tên cửa hàng để xem ảnh nhân viên đã gửi lên khi thêm/sửa cửa hàng đó.</p>
+        <div class="row">
+          <input type="text" id="admPhotoQuery" placeholder="Tên cửa hàng" />
+          <button class="btn-small btn-green" onclick="admPhotoLookup()">🔎 Tìm</button>
+        </div>
+        <div id="admPhotoResult" style="margin-top:8px"></div>
+      </div>
     </div>
 
     <!-- FORM THÊM / SỬA -->
@@ -324,7 +310,7 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
 
       <input type="hidden" id="addLink" />
 
-      <label>Toạ độ (không bắt buộc)</label>
+      <label>Toạ độ *</label>
       <input type="text" id="addCoord" placeholder="VD: 20.925094 105.851222" inputmode="decimal" oninput="gpsAcc=null" />
       <div class="row wrap" style="margin-top:8px">
         <button class="btn-small" onclick="getMyLocation()">📍 Vị trí của tôi</button>
@@ -348,7 +334,7 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
     <div id="googleList"></div>
     <div id="mapsSearchBox"></div>
 
-    <div id="mapSection" class="hidden" style="display:none!important">
+    <div id="mapSection" class="hidden">
       <div class="coord-display">
         <span>📍 <span class="coord-value" id="coordValue">-</span></span>
         <button class="btn-small" id="copyBtn" onclick="copyCoord()">📋 Copy</button>
@@ -359,53 +345,9 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
   </div>
 </div>
 
-<div id="toast"></div>
-<div id="loader"><div class="ld-box"><div class="ld-title" id="ldTitle"></div><div class="ld-bar"><div class="ld-fill" id="ldFill"></div></div><div class="ld-pct" id="ldPct">0%</div><div class="ld-step" id="ldStep"></div></div></div>
 <script src="config.js"></script>
 <script>
 var API = (window.APP_CONFIG || {}).API_URL;
-// ---------- TỰ CẬP NHẬT (CAPGO) ----------
-var UPDATE_BASE = '__UPDATE_BASE__';
-var BUILD_VER = '__BUILD_VER__';
-
-function getUpdater(){
-  try{
-    var C = window.Capacitor;
-    if(C && C.isNativePlatform && C.isNativePlatform())
-      return (C.Plugins && C.Plugins.CapacitorUpdater) || (C.registerPlugin ? C.registerPlugin('CapacitorUpdater') : null);
-  }catch(e){}
-  return null;
-}
-
-function checkForUpdate(){
-  var U = getUpdater();
-  if(!U || UPDATE_BASE.indexOf('__')===0) return; // không phải APK, hoặc chưa build qua workflow (placeholder chưa thay)
-
-  U.notifyAppReady().catch(function(){});
-
-  fetch(UPDATE_BASE + '/version.json?t=' + Date.now())
-    .then(function(r){ return r.json(); })
-    .then(function(info){
-      if(!info || !info.version || info.version === BUILD_VER) return; // đã là bản mới nhất
-      try{ if(localStorage.getItem('updTried')===info.version) return; }catch(e){}
-      window.updMsg='đang tải '+info.version+'...';showVer();
-      console.log('Có bản mới:', info.version, '(đang dùng:', BUILD_VER, ')');
-      return U.download({
-        url: UPDATE_BASE + '/' + info.file,
-        version: info.version
-      });
-    })
-    .then(function(bundle){
-      if(!bundle) return;
-      try{localStorage.setItem('updTried',bundle.version||'');}catch(e){}
-      return U.next(bundle); // áp dụng ở lần mở app sau, không reload khi đang nhập
-    })
-    .catch(function(e){ window.updMsg='lỗi cập nhật';showVer();console.log('Lỗi kiểm tra cập nhật:', e); });
-}
-
-setInterval(checkForUpdate, 10*60*1000); // kiểm tra định kỳ mỗi 10 phút, kể cả khi app đang mở
-// Kiểm tra ngay khi mở app, và mỗi khi quay lại app từ nền
-setTimeout(checkForUpdate, 5000);
 var session = null, lastQuery = '', currentResults = [], currentSource = 'sheet';
 var wipeShown=false, photoData = null, gpsAcc = null, editRow = null, editName = null;
 function $(id){return document.getElementById(id);}
@@ -413,16 +355,17 @@ function esc(s){var d=document.createElement('div');d.textContent=s==null?'':s;r
 function isAdmin(){return session && session.role==='admin';}
 
 // ---------- ÂM THANH THÔNG BÁO ----------
+// Các file mp3 để CÙNG THƯ MỤC với index.html, giữ nguyên tên gốc.
 var SND={
-  gps:'cấp_quyền_gps.mp3',
-  searching:'đang_tìm_kiếm.mp3',
-  found:'đã_có_kết_quả.mp3',
-  error:'lỗi_tìm_kiếm.mp3',
-  fake:'tat_face_gps.mp3',
-  expired:'hết_hạn.mp3'
+  gps:'cấp_quyền_gps.mp3',        // chưa bật / chưa cấp quyền GPS
+  searching:'đang_tìm_kiếm.mp3',  // bấm "Cửa hàng gần tôi nhất" hoặc "Tìm cửa hàng khác trên Google Maps"
+  found:'đã_có_kết_quả.mp3',      // tìm có kết quả
+  error:'lỗi_tìm_kiếm.mp3',       // "Không tìm thấy ..."
+  fake:'tat_face_gps.mp3',        // phát hiện GPS giả
+  expired:'hết_hạn.mp3'           // hết hạn / đến ngày xoá app
 };
 var sndObj={}, sndCur=null, sndPending=null;
-(function(){Object.keys(SND).forEach(function(k){try{var a=new Audio(encodeURI(SND[k]));a.preload='none';sndObj[k]=a;}catch(e){}});})();
+(function(){Object.keys(SND).forEach(function(k){try{var a=new Audio(encodeURI(SND[k]));a.preload='auto';sndObj[k]=a;}catch(e){}});})();
 function stopSound(){if(sndCur){try{sndCur.pause();sndCur.currentTime=0;}catch(e){}sndCur=null;}}
 function playSound(k){
   var a=sndObj[k];if(!a)return;
@@ -430,12 +373,13 @@ function playSound(k){
   try{a.currentTime=0;}catch(e){}
   sndCur=a;
   var pr;try{pr=a.play();}catch(e){}
-  if(pr&&pr.catch)pr.catch(function(){sndPending=k;});
+  if(pr&&pr.catch)pr.catch(function(){sndPending=k;});   // trình duyệt chặn tự phát: phát ngay khi người dùng chạm lần đầu
 }
 ['pointerdown','touchstart','keydown'].forEach(function(ev){
   document.addEventListener(ev,function(){if(sndPending){var k=sndPending;sndPending=null;playSound(k);}},true);
 });
-// ---------- THÔNG TIN THIẾT BỊ ----------
+
+// ---------- THÔNG TIN THIẾT BỊ (ghi vào nhật ký) ----------
 var devInfo={id:'',type:'',model:'',os:'',app:'Web'};
 function parseUA(){
   var ua=navigator.userAgent||'', o={type:'Laptop/PC',model:'',os:'',app:'Web'};
@@ -476,11 +420,13 @@ var devReady=(function(){
 
 // ---------- GỌI API ----------
 function api(action, params, post){
+  // Lấy thông tin đăng nhập NGAY (trước khi có thể bị đăng xuất), rồi mới chờ thông tin thiết bị
   var base = {action:action, email:session?session.email:'', code:session?session.code:''};
   var payload = Object.assign(base, params||{});
   return devReady.then(function(){
     payload.dev = JSON.stringify(devInfo);
     if(post){
+      // text/plain để tránh preflight CORS với Apps Script
       return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
     }
     var qs = Object.keys(payload).filter(function(k){return payload[k]!==undefined&&payload[k]!==null;}).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(payload[k]);}).join('&');
@@ -493,21 +439,16 @@ function api(action, params, post){
 }
 
 // ---------- ĐĂNG NHẬP / PHÂN QUYỀN ----------
-function saveSession(){try{localStorage.setItem('session',JSON.stringify(session));}catch(e){}}
-function showVer(){
-  var v=(BUILD_VER.indexOf('__')===0)?'1.0':BUILD_VER;
-  var t=$('verText');if(t)t.textContent=v;
-  var s=$('verInfo');if(s)s.textContent='Phiên bản: '+v+(window.updMsg?' • '+window.updMsg:'');
-}
+function saveSession(){try{localStorage.setItem('session',JSON.stringify(session));if(session&&session.email)localStorage.setItem('lastEmail',session.email);}catch(e){}}   // nhớ email để lần sau điền sẵn
 function applyRole(){
-  showVer();
   if(!session)return;
   $('whoAmI').textContent=session.email;
   $('btnAdmin').classList.toggle('hidden',!isAdmin());
+  $('btnAdd').classList.toggle('hidden',!isAdmin());
   $('expInfo').textContent=(!isAdmin()&&session.expires)?('Hạn dùng đến '+fmtDate(session.expires)):'';
 }
 function fmtDate(iso){var m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?(m[3]+'/'+m[2]+'/'+m[1]):String(iso||'');}
-
+// ----- Hết hạn / đến ngày xoá app: xoá dữ liệu trên máy, yêu cầu gỡ cài đặt -----
 function wipeApp(msg){
   logout(msg||'Ứng dụng đã hết hạn.');
   try{var id=localStorage.getItem('deviceId');localStorage.clear();if(id)localStorage.setItem('deviceId',id);}catch(e){}
@@ -522,60 +463,28 @@ function uninstallApp(){
   try{
     var C=window.Capacitor;
     var P=(C.Plugins&&C.Plugins.AppControl)||(C.registerPlugin?C.registerPlugin('AppControl'):null);
-    if(P){P.uninstall().catch(function(){$('wipeMsg').textContent+=' (Không mở được trình gỡ cài đặt)';});return;}
+    if(P){P.uninstall().catch(function(){$('wipeMsg').textContent+=' (Không mở được trình gỡ cài đặt, hãy gỡ tay: Cài đặt → Ứng dụng → Tìm cửa hàng → Gỡ cài đặt.)';});return;}
   }catch(e){}
-  $('wipeMsg').textContent+=' Hãy gỡ tay thủ công trong Cài đặt.';
+  $('wipeMsg').textContent+=' Hãy gỡ tay: Cài đặt → Ứng dụng → Tìm cửa hàng → Gỡ cài đặt.';
 }
-
-// HÀM HIỂN THỊ MÀN HÌNH (Đã tích hợp Điều khoản sử dụng)
 function showView(){
-  var must = !!session && !!session.mustChange;
-  var gate = false;
-  var needTerms = !checkTerms();
-  
-  $('termsView').classList.toggle('hidden', !needTerms);
-  $('loginView').classList.toggle('hidden', !!session || wipeShown || needTerms);
-  $('wipeView').classList.toggle('hidden', !wipeShown || needTerms);
-  $('pwView').classList.toggle('hidden', !must || needTerms);
-  $('gateView').classList.toggle('hidden', !gate || needTerms);
-  $('appView').classList.toggle('hidden', !(session && !must) || needTerms);
+  var must=!!session&&!!session.mustChange;
+  var gate=false;
+  $('loginView').classList.toggle('hidden', !!session||wipeShown);
+  $('wipeView').classList.toggle('hidden', !wipeShown);
+  $('pwView').classList.toggle('hidden', !must);
+  $('gateView').classList.toggle('hidden', !gate);
+  $('appView').classList.toggle('hidden', !(session&&!must));
   applyRole();
 }
-
-function checkTerms() {
-    try {
-        return !!localStorage.getItem('termsAgreed');
-    } catch(e) { return true; }
-}
-
-function onAcceptTerms() {
-    try {
-        localStorage.setItem('termsAgreed', 'true');
-    } catch(e) {}
-    showView();
-}
-
-function onRejectTerms() {
-    alert('Bạn đã từ chối điều khoản sử dụng. Ứng dụng sẽ không thể hoạt động.');
-    try {
-        var C = window.Capacitor;
-        var App = (C && C.Plugins && C.Plugins.App) || (C && C.registerPlugin ? C.registerPlugin('App') : null);
-        if (App && typeof App.exitApp === 'function') {
-            App.exitApp();
-        } else {
-            window.close();
-        }
-    } catch(e) {
-        document.body.innerHTML = '<div style="padding:40px;text-align:center;font-family:sans-serif;"><h2>Bạn đã từ chối điều khoản sử dụng.</h2><p>Vui lòng đóng ứng dụng.</p></div>';
-    }
-}
-
 function validEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
+// Ghi nhật ký sự kiện lên máy chủ (không chờ kết quả)
 function logEvt(evt,extra){
   if(!session||session.mustChange)return;
   api('logEvent',Object.assign({evt:evt},extra||{}),true);
 }
 
+// ----- Ô "Mã truy cập" tự đổi thành "Mật khẩu" khi email đã có mật khẩu -----
 var emailTimer=null, emailChecked='', emailState='none';
 function setLoginState(st){
   emailState=st;
@@ -584,7 +493,7 @@ function setLoginState(st){
   $('loginCode').placeholder=isPw?'Mật khẩu của bạn':'Mã truy cập do quản trị viên cấp';
   $('loginCode').setAttribute('autocapitalize',isPw?'none':'characters');
   $('loginHint').textContent=st==='pending'?'Bạn đã được cấp mã. Đăng nhập lần đầu bằng mã này, sau đó bạn sẽ đặt mật khẩu mới.':
-    (st==='password'?'Quên mật khẩu? Bấm "Đăng ký" để xin cấp lại.':'');
+    (st==='password'?'Quên mật khẩu? Bấm "Gửi yêu cầu cấp mã" để xin cấp lại.':'');
 }
 function onEmailInput(){
   var e=$('loginEmail').value.trim().toLowerCase();
@@ -594,7 +503,7 @@ function onEmailInput(){
   if(e===emailChecked)return;
   emailTimer=setTimeout(function(){
     api('status',{email:e}).then(function(res){
-      if($('loginEmail').value.trim().toLowerCase()!==e)return;
+      if($('loginEmail').value.trim().toLowerCase()!==e)return; // email đã đổi trong lúc chờ
       emailChecked=e;
       setLoginState(res&&res.success?res.state:'none');
     });
@@ -605,7 +514,7 @@ function requestCode(){
   if(!validEmail(e)){$('loginStatus').innerHTML='<span class="error">Nhập email hợp lệ trước khi gửi yêu cầu.</span>';return;}
   $('reqBtn').disabled=true;$('loginStatus').textContent='Đang gửi yêu cầu...';
   api('requestCode',{email:e},true).then(function(res){
-    $('loginStatus').innerHTML='<span class="'+(res.success?'ok':'error')+'">'+esc(res.success?'Bạn đã đăng ký thành công. Bạn vui lòng liên hệ IT để cấp quyền truy cập hệ thống.':(res.message||''))+'</span>';
+    $('loginStatus').innerHTML='<span class="'+(res.success?'ok':'error')+'">'+esc(res.message||'')+'</span>';
     setTimeout(function(){$('reqBtn').disabled=!validEmail($('loginEmail').value.trim());},res.success?8000:1500);
   });
 }
@@ -620,7 +529,7 @@ function doLogin(){
     if(res.success){
       session.role=res.role;session.canAdd=res.canAdd;session.expires=res.expires||'';session.mustChange=!!res.mustChange;saveSession();
       $('loginStatus').textContent='';$('loginCode').value='';
-      if(session.mustChange){showView();}
+      if(session.mustChange){showView();}   // lần đầu: bắt buộc đặt mật khẩu mới
       else startGate();
     } else {
       session=null;
@@ -647,29 +556,33 @@ function logout(msg){
   session=null;try{localStorage.removeItem('session');}catch(e){}
   stopGps();gateOk=false;userPos=null;adminFakeLogged=false;
   $('loginCode').value='';$('newPw').value='';$('newPw2').value='';$('pwStatus').innerHTML='';
+  try{admCamStop();}catch(e){}
   ['addSection','adminSection','mapSection','importSection'].forEach(function(id){$(id).classList.add('hidden');});
   $('resultsList').innerHTML='';$('notFoundBox').innerHTML='';$('status').textContent='';$('codeBox').innerHTML='';
   $('loginStatus').innerHTML=(typeof msg==='string'&&msg)?'<span class="error">'+esc(msg)+'</span>':'';
-  showView();emailChecked='';onEmailInput();
+  showView();emailChecked='';
+  try{var le2=localStorage.getItem('lastEmail');if(le2&&!$('loginEmail').value)$('loginEmail').value=le2;}catch(e){}
+  onEmailInput();
 }
 (function init(){
   try{session=JSON.parse(localStorage.getItem('session')||'null');}catch(e){session=null;}
   if(session)$('loginEmail').value=session.email;
+  else{try{var le=localStorage.getItem('lastEmail');if(le)$('loginEmail').value=le;}catch(e){}}   // điền sẵn email dùng lần trước
   onEmailInput();
   if(session&&!session.mustChange)startGate(); else {showView();primeGps();}
   $('storeInput').addEventListener('keydown',function(e){if(e.key==='Enter')doSearch();});
-  if(session){
+  if(session){ // làm mới quyền; nếu bị thu hồi sẽ tự đăng xuất
     api('ping',{evt:'open'}).then(function(res){
       if(res.success&&session){session.role=res.role;session.canAdd=res.canAdd;session.expires=res.expires||'';session.mustChange=!!res.mustChange;saveSession();applyRole();if(session.mustChange)showView();}
     });
   }
 })();
 
-// ---------- GPS & ĐỊNH VỊ ----------
+// ---------- BẮT BUỘC BẬT GPS + ĐỊNH VỊ NGƯỜI DÙNG ----------
 var gateOk=false, userPos=null;
-var MSG_DENIED='Ứng dụng chưa được cấp quyền vị trí. Vào Cài đặt → Ứng dụng → Tìm cửa hàng → Quyền → Vị trí → chọn "Cho phép".';
-var MSG_OFF='Bạn cần bật vị trí (GPS) để tiếp tục.';
-var MSG_FAIL='Không xác định được vị trí. Hãy bật GPS và ra chỗ thoáng.';
+var MSG_DENIED='Ứng dụng chưa được cấp quyền vị trí. Vào Cài đặt → Ứng dụng → Tìm cửa hàng → Quyền → Vị trí → chọn "Cho phép" (bật "Chính xác"), rồi bấm Thử lại.';
+var MSG_OFF='Bạn cần bấm "OK" ở hộp thoại để bật vị trí. Bấm Thử lại để hiện lại hộp thoại.';
+var MSG_FAIL='Không xác định được vị trí. Hãy bật GPS (Vị trí) trong cài đặt điện thoại, chọn chế độ độ chính xác cao, ra chỗ thoáng rồi bấm Thử lại.';
 function capGeo(){return window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Geolocation;}
 function pad(n){return (n<10?'0':'')+n;}
 
@@ -681,50 +594,30 @@ function getEnabler(){
   }catch(e){}
   return null;
 }
-// Hiển thị bước hiện tại ngay trên dòng gpsText, để khi treo biết ngay đang kẹt ở đâu
-// mà không cần log kỹ thuật/adb. Đồng thời gửi lên server (logEvt) khi có bước timeout.
-function gpsStep(txt){ var el=$('gpsText'); if(el)el.textContent='📡 '+txt; }
-function logStepTimeout(step){ try{ logEvt('GPS_BUOC_TREO',{step:step}); }catch(e){} }
-
+// APK: tự hiện hộp thoại "Bật vị trí" của Google (bấm OK là xong) rồi xin quyền vị trí.
+// Trả về 'ok' | 'off' (người dùng từ chối bật) | 'denied' (từ chối quyền)
 function nativeReady(){
   var G=capGeo();
   if(!G)return Promise.resolve('ok');
+  // Nếu hộp thoại "Bật vị trí" / "Cho phép vị trí" hiện ra (chờ quá 0,4s) thì phát âm thanh cấp quyền GPS NGAY.
+  // Nếu GPS đã bật và đã có quyền thì xong trong tích tắc, không phát gì.
   var settled=false;
   var t=setTimeout(function(){ if(!settled)playSound('gps'); },400);
   function end(v){
     settled=true;clearTimeout(t);
-    if(v==='ok'){ if(sndPending==='gps')sndPending=null; if(sndCur&&sndCur===sndObj.gps)stopSound(); }
+    if(v==='ok'){ if(sndPending==='gps')sndPending=null; if(sndCur&&sndCur===sndObj.gps)stopSound(); }   // đã bật xong: tắt tiếng
     return v;
   }
   var E=getEnabler();
-  var step1;
-  if(E){
-    gpsStep('Đang bật GPS (bước 1/4)...');
-    var tries=0;
-    function askEnable(){
-      return E.enable().then(function(r){
-        if(r&&r.enabled)return 'ok';
-        if(++tries>=30)return 'off';   // chặn vòng lặp vô hạn nếu hộp thoại không hiện được
-        return new Promise(function(res){setTimeout(res,700);}).then(askEnable);
-      }).catch(function(){return 'ok';});
-    }
-    step1=askEnable();
-  } else {
-    step1=Promise.resolve('ok');
-  }
+  var step1=E?E.enable().then(function(r){return (r&&r.enabled)?'ok':'off';}).catch(function(){return 'ok';}):Promise.resolve('ok');
   return step1.then(function(s){
     if(s==='off')return 'off';
-    gpsStep('Đang xin quyền vị trí (bước 2/4)...');
-    var permP=G.requestPermissions().then(function(st){
+    return G.requestPermissions().then(function(st){
       return (st&&st.location==='denied')?'denied':'ok';
     }).catch(function(){return 'ok';});
-    var permTimeoutP=new Promise(function(res){
-      setTimeout(function(){ logStepTimeout('request_permissions'); gpsStep('Bước xin quyền quá lâu, bỏ qua (bước 2/4)...'); res('ok'); },7000);
-    });
-    return Promise.race([permP,permTimeoutP]);
   }).then(end);
 }
-var MSG_FAKE='Phát hiện GPS giả (vị trí giả).';
+var MSG_FAKE='Phát hiện GPS giả (vị trí giả). Hãy tắt: Cài đặt → Tuỳ chọn nhà phát triển → Chọn ứng dụng vị trí giả → Không có; gỡ app giả GPS; rồi bấm Thử lại.';
 function isNativeApp(){try{var C=window.Capacitor;return !!(C&&C.isNativePlatform&&C.isNativePlatform());}catch(e){return false;}}
 function getGuard(){
   try{var C=window.Capacitor;if(isNativeApp())return (C.Plugins&&C.Plugins.MockGuard)||(C.registerPlugin?C.registerPlugin('MockGuard'):null);}catch(e){}
@@ -733,44 +626,32 @@ function getGuard(){
 var guardInfo=null, adminFakeLogged=false;
 function logAdminFake(g){
   if(adminFakeLogged)return;adminFakeLogged=true;
-  logEvt('GPS_GIA_ADMIN',{note:'Admin dùng vị trí giả'});
+  logEvt('GPS_GIA_ADMIN',{note:'Admin dùng vị trí giả (được phép)'+((g.mockApps&&g.mockApps.length)?' | '+g.mockApps.join('; '):'')});
 }
+// Hỏi Android: vị trí hiện tại có bị gắn cờ "mock" không. Bản APK cũ chưa có plugin -> coi như không biết (không chặn).
 function guardCheck(){
   var g=getGuard();if(!g)return Promise.resolve({mock:false});
-  gpsStep('Đang kiểm tra GPS giả (bước 4/4)...');
-  var timedOut=false;
-  var timeoutP=new Promise(function(res){
-    setTimeout(function(){
-      timedOut=true;
-      logStepTimeout('mock_guard_check');
-      gpsStep('Bước kiểm tra GPS giả quá lâu, bỏ qua (bước 4/4)...');
-      res({mock:false,_timeout:true});
-    },5000);
-  });
-  var checkP=g.check().then(function(r){
-    if(timedOut)return null; // native trả lời trễ, đã dùng kết quả timeout rồi
-    guardInfo=r||{};return guardInfo;
-  }).catch(function(){ return timedOut?null:{mock:false}; });
-  return Promise.race([checkP,timeoutP]).then(function(r){ return r||{mock:false}; });
+  return g.check().then(function(r){guardInfo=r||{};return guardInfo;}).catch(function(){return {mock:false};});
 }
 function locateSafe(o){
   return locate(o).then(function(p){
     return guardCheck().then(function(g){
       if(g&&g.mock){
         if(!isAdmin())throw MSG_FAKE;
-        logAdminFake(g);
+        logAdminFake(g);          // admin được phép dùng GPS giả: không chặn, chỉ ghi nhật ký (1 lần / phiên)
       }
       return p;
     });
   });
 }
+// Ngay từ màn hình đăng nhập: nếu chưa bật / chưa cấp quyền GPS thì hiện hộp thoại xin quyền và phát âm thanh "cấp quyền GPS" cùng lúc
 function primeGps(){
-  if(capGeo()){nativeReady();return;}
+  if(capGeo()){nativeReady();return;}   // APK: nativeReady tự phát âm thanh khi hộp thoại hiện ra
   if(!navigator.geolocation)return;
   function stopIfPlaying(){ if(sndPending==='gps')sndPending=null; if(sndCur&&sndCur===sndObj.gps)stopSound(); }
   function ask(){
     playSound('gps');
-    navigator.geolocation.getCurrentPosition(stopIfPlaying,function(){},{enableHighAccuracy:false,timeout:15000,maximumAge:60000});
+    navigator.geolocation.getCurrentPosition(stopIfPlaying,function(){},{enableHighAccuracy:false,timeout:15000,maximumAge:60000});   // làm trình duyệt hiện hộp thoại xin quyền
   }
   try{
     if(navigator.permissions&&navigator.permissions.query){
@@ -781,6 +662,8 @@ function primeGps(){
   ask();
 }
 
+// Dò GPS: lấy vị trí có sẵn/gần đúng NGAY (quickAcc), đồng thời dò chính xác;
+// dừng khi đạt target (mét) hoặc đạt quickAcc nếu có đặt.
 function locate(o){
   o=o||{};
   var target=o.target||25, maxWait=o.maxWait||15000, quick=o.quickAcc||0;
@@ -789,10 +672,10 @@ function locate(o){
     function cleanup(){
       clearTimeout(timer);
       try{ if(id!=null){ if(G)G.clearWatch({id:id}); else navigator.geolocation.clearWatch(id); } }catch(e){}
-      try{ if(lowWatch!=null)navigator.geolocation.clearWatch(lowWatch); }catch(e){}
     }
     function ok(){ if(done)return; done=true; cleanup(); resolve(best); }
     function bad(msg){ if(done)return; done=true; cleanup(); reject(msg); }
+    function finish(){ if(best)ok(); else bad(MSG_FAIL); }
     function onPos(pos){
       if(done||!pos||!pos.coords)return;
       var acc=pos.coords.accuracy;
@@ -800,25 +683,14 @@ function locate(o){
       if(o.onProgress)o.onProgress(best.acc,Math.round((Date.now()-started)/1000));
       if(best.acc<=target||(quick&&best.acc<=quick))ok();
     }
-    var lastErr=null, lowWatch=null;
     function onErr(err){
-      if(best||done)return;
+      if(best)return;
       var m=err&&String(err.message||'');
-      if(err&&(err.code===1||err.code==='PERMISSION_DENIED')){bad(MSG_DENIED);return;}
-      if(m&&/not enabled|disabled|turned off|location services/i.test(m)){bad(MSG_OFF);return;}
-      lastErr=err||{};
-      startLowWatch();
+      if(err&&(err.code===1||err.code==='PERMISSION_DENIED'))bad(MSG_DENIED);
+      else if(m&&/not enabled|disabled|turned off|location services/i.test(m))bad(MSG_OFF);
+      else bad(MSG_FAIL);
     }
-    function startLowWatch(){
-      if(G||lowWatch!=null||done||!navigator.geolocation)return;
-      try{lowWatch=navigator.geolocation.watchPosition(onPos,function(e){lastErr=e||lastErr;},{enableHighAccuracy:false,timeout:Math.max(4000,maxWait-2000),maximumAge:600000});}catch(e){}
-    }
-    function finish(){
-      if(best){ok();return;}
-      if(lastErr&&(lastErr.code===1))bad(MSG_DENIED);else bad(MSG_FAIL);
-    }
-    gpsStep('Đang dò vị trí GPS (bước 3/4)...');
-    timer=setTimeout(function(){ logStepTimeout('locate_gps'); finish(); },maxWait);
+    timer=setTimeout(finish,maxWait);
     var opts={enableHighAccuracy:true,timeout:maxWait,maximumAge:o.maximumAge||0};
     var fast={enableHighAccuracy:false,timeout:5000,maximumAge:120000};
     if(G){
@@ -834,37 +706,25 @@ function locate(o){
         id=wid;
       }).catch(function(){ bad(MSG_FAIL); });
     } else if(navigator.geolocation){
-      navigator.geolocation.getCurrentPosition(onPos,function(e){ if(e&&e.code===1)onErr(e); else {lastErr=e||lastErr;startLowWatch();} },{enableHighAccuracy:false,timeout:8000,maximumAge:300000});
-      id=navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,timeout:Math.min(maxWait,10000),maximumAge:o.maximumAge||0});
+      if(quick)navigator.geolocation.getCurrentPosition(onPos,function(){},fast);
+      id=navigator.geolocation.watchPosition(onPos,onErr,opts);
     } else bad('Thiết bị không hỗ trợ GPS.');
   });
 }
 
 function logGpsErr(msg){
-  playSound(msg===MSG_FAKE?'fake':'gps');
+  playSound(msg===MSG_FAKE?'fake':'gps');   // giả GPS -> tat_face_gps; chưa bật/cấp quyền GPS -> cấp quyền GPS
   if(msg===MSG_FAKE){
-    var g=guardInfo||{};
-    logEvt('GPS_GIA',{osFlaggedMock:!!g.osFlaggedMock,mockApps:g.mockApps||[],rootOrXposed:!!g.rootOrXposed,devOptions:!!g.devOptions});
+    var gi=guardInfo||{};
+    logEvt('GPS_GIA',{note:'PHÁT HIỆN GPS GIẢ'+((gi.mockApps&&gi.mockApps.length)?' | App giả GPS: '+gi.mockApps.join('; '):'')+(gi.devOptions?' | Bật tuỳ chọn nhà phát triển':'')});
     return;
   }
-  logEvt('GPS_LOI',{note:msg});
-}
-function openLocationSettings(){
-  try{
-    var E=getEnabler();
-    if(E&&E.openSettings){E.openSettings();return;}
-  }catch(e){}
-  try{
-    // Web/không có plugin native: không mở được cài đặt hệ thống trực tiếp,
-    // chỉ nhắc người dùng tự vào Cài đặt > Vị trí.
-    alert('Vui lòng vào Cài đặt → Vị trí để bật GPS, sau đó quay lại ứng dụng.');
-  }catch(e){}
+  logEvt('GPS_LOI',{note:msg===MSG_DENIED?'TỪ CHỐI QUYỀN VỊ TRÍ':(msg===MSG_OFF?'GPS ĐANG TẮT / KHÔNG BẬT':'KHÔNG ĐỊNH VỊ ĐƯỢC')});
 }
 function setGpsUi(ok,msg){
-  $('gpsRefreshBtn').classList.toggle('hidden',!!ok);
-  $('gpsSettingsBtn').classList.toggle('hidden', ok || msg!==MSG_OFF);
+  $('gpsRefreshBtn').classList.toggle('hidden',!!ok);   // chỉ hiện "Cập nhật" khi KHÔNG lấy được toạ độ
   if(!ok){
-    if(msg===MSG_FAKE)userPos=null;
+    if(msg===MSG_FAKE)userPos=null;   // bỏ vị trí cũ, không cho dùng để tìm kiếm
     $('gpsDetail').classList.add('hidden');
     if(msg&&msg!=='loading')logGpsErr(msg);
     $('gpsText').className='error';
@@ -872,19 +732,15 @@ function setGpsUi(ok,msg){
   } else $('gpsText').className='';
 }
 function startGate(){
-  gateOk=true;showView();
+  gateOk=true;showView();          // vào app ngay, GPS tự động lấy ngầm
   setGpsUi(false,'loading');
   $('gpsRefreshBtn').classList.add('hidden');
-  ldShow('Đang xác định vị trí của bạn','Đang bật và dò tín hiệu GPS...',75);
   locateSafe({target:25,quickAcc:100,maxWait:12000,onProgress:function(acc,secs){
     $('gpsText').textContent='📡 Đang dò GPS... sai số ~'+Math.round(acc)+'m';
-    ldSet('Đang dò GPS, sai số ~'+Math.round(acc)+' m',0,85);
   }}).then(function(p){
-    ldSet('Đã có vị trí. Đang tìm địa chỉ...',90,98);
     setUserPos(p);
-    setTimeout(ldHide,600);
     if(p.acc>25)refineQuiet();
-  }).catch(function(msg){ setGpsUi(false,msg);ldHide(); });
+  }).catch(function(msg){ setGpsUi(false,msg); });
 }
 var geoLast=null;
 function showPosDetail(p){
@@ -895,7 +751,7 @@ function showPosDetail(p){
   }
   box.innerHTML='📍 <b>'+coord+'</b><br>🏠 Đang tìm địa chỉ...';
   api('revgeo',{lat:p.lat,lng:p.lng}).then(function(res){
-    if(userPos!==p)return;
+    if(userPos!==p)return;   // đã có vị trí mới hơn
     if(res&&res.success&&res.address){
       geoLast={lat:p.lat,lng:p.lng,addr:res.address};
       box.innerHTML='📍 <b>'+coord+'</b><br>🏠 '+esc(res.address);
@@ -908,48 +764,42 @@ function refineQuiet(){
   }).catch(function(){});
 }
 function setUserPos(p){
-  userPos=p;updateAddBtn();if(sndPending==='gps')sndPending=null;
+  userPos=p;if(sndPending==='gps')sndPending=null;
   logEvt('DINH_VI',{lat:p.lat,lng:p.lng,acc:Math.round(p.acc),pt:p.time});
   var t=new Date(p.time);
   setGpsUi(true);
   showPosDetail(p);
   $('gpsText').textContent='📡 Vị trí của bạn: ±'+Math.round(p.acc)+'m • '+pad(t.getHours())+':'+pad(t.getMinutes());
 }
-function ensureFreshPos(force,ui){
+// Làm mới vị trí nếu đã cũ; nếu GPS bị tắt giữa chừng thì quay lại màn hình bắt buộc bật GPS
+function ensureFreshPos(force){
   return new Promise(function(resolve){
     if(!force&&userPos&&Date.now()-userPos.time<90000){resolve(true);return;}
-    if(ui)ldShow('Đang xác định vị trí của bạn','Đang bật và dò tín hiệu GPS...',60);
-    locateSafe({target:25,quickAcc:force?0:100,maxWait:10000,onProgress:function(acc){
-      ldSet('Đang dò GPS, sai số ~'+Math.round(acc)+' m',0,70);
-    }}).then(function(p){
-      setUserPos(p);
-      if(ui===1)ldHide(); else ldSet('Đã có vị trí. Đang xử lý...',65,92);
-      resolve(true);
+    locateSafe({target:25,quickAcc:force?0:100,maxWait:10000}).then(function(p){
+      setUserPos(p);resolve(true);
     }).catch(function(msg){
-      setGpsUi(false,msg);$('status').innerHTML='<span class="error">'+esc(msg)+'</span>';
-      ldHide();resolve(false);
+      setGpsUi(false,msg);$('status').innerHTML='<span class="error">'+esc(msg)+'</span>';resolve(false);
     });
   });
 }
 function refreshPos(){
   $('gpsText').textContent='📡 Đang cập nhật vị trí...';
   $('gpsRefreshBtn').classList.add('hidden');
-  ensureFreshPos(true,1);
+  ensureFreshPos(true);
 }
 document.addEventListener('visibilitychange',function(){
-  if(document.visibilityState!=='visible'||!session||!gateOk)return;
-  if($('gpsText').className==='error')ensureFreshPos(true);   // đang lỗi/GPS tắt -> hỏi bật lại
-  else if(!userPos||Date.now()-userPos.time>60000)ensureFreshPos(false);
+  if(document.visibilityState==='visible'&&session&&gateOk&&(!userPos||Date.now()-userPos.time>60000))ensureFreshPos(false);
 });
 
-// ---------- KHOẢNG CÁCH & CHỈ ĐƯỜNG ----------
+// ---------- TIỆN ÍCH KHOẢNG CÁCH / CHỈ ĐƯỜNG ----------
 function distM(lat1,lng1,lat2,lng2){
   var R=6371000,r=Math.PI/180,dLat=(lat2-lat1)*r,dLng=(lng2-lng1)*r;
   var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dLng/2)*Math.sin(dLng/2);
   return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 function fmtDist(m){return m<1000?Math.round(m)+' m':(m/1000).toFixed(m<10000?1:0)+' km';}
-var travelMode='two-wheeler';
+var travelMode='two-wheeler';   // cố định xe máy (đã bỏ 3 nút chọn phương tiện)
+// Link này mở thẳng app Google Maps nếu máy đã cài, nếu chưa thì mở bản web
 function navUrl(p){
   var u='https://www.google.com/maps/dir/?api=1&destination='+p.lat+','+p.lng+'&travelmode='+travelMode;
   if(p.placeId)u+='&destination_place_id='+encodeURIComponent(p.placeId);
@@ -958,6 +808,7 @@ function navUrl(p){
 function viewUrl(p){
   return 'https://www.google.com/maps/search/?api=1&query='+p.lat+','+p.lng+(p.placeId?'&query_place_id='+encodeURIComponent(p.placeId):'');
 }
+// Trong APK: mở thẳng app Google Maps (chế độ dẫn đường). Không có app -> mở bản web.
 var NAV_MODE={'two-wheeler':'l','driving':'d','walking':'w'};
 function openNavNative(p){
   var AL=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.AppLauncher;
@@ -972,14 +823,25 @@ document.addEventListener('click',function(e){
   if(!a)return;
   var isNav=!a.classList.contains('map-link');
   var p=a.classList.contains('nav-btn')?(a.hasAttribute('data-g')?googleResults[Number(a.getAttribute('data-g'))]:currentResults[Number(a.getAttribute('data-i'))]):selected;
-  if(isNav&&p&&typeof p.lat==='number')logStore('CHI_DUONG',p);
+  if(isNav&&p&&typeof p.lat==='number')logStore('CHI_DUONG',p);   // ghi nhật ký: đã mở chỉ đường tới cửa hàng này
   var AL=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.AppLauncher;
-  if(!AL)return;
+  if(!AL)return;                                                  // bản web: để trình duyệt tự mở
   e.preventDefault();e.stopPropagation();
   if(!p||typeof p.lat!=='number')return;
   if(!isNav){AL.openUrl({url:viewUrl(p)}).catch(function(){});return;}
   openNavNative(p);
 },true);
+function markMode(){
+  document.querySelectorAll('.mode').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-m')===travelMode);});
+}
+function setMode(m){
+  travelMode=m;try{localStorage.setItem('travelMode',m);}catch(e){}
+  markMode();
+  document.querySelectorAll('.nav-btn').forEach(function(a){
+    var p=a.hasAttribute('data-g')?googleResults[Number(a.getAttribute('data-g'))]:currentResults[Number(a.getAttribute('data-i'))];if(p)a.href=navUrl(p);
+  });
+  if(selected&&typeof selected.lat==='number')$('navLink').href=navUrl(selected);
+}
 
 // ---------- TÌM KIẾM ----------
 function resetUI(){$('mapsSearchBox').innerHTML='';googleSeq++;googleResults=[];$('googleList').innerHTML='';$('resultsList').innerHTML='';$('notFoundBox').innerHTML='';$('mapSection').classList.add('hidden');}
@@ -990,7 +852,6 @@ function parseQueryCoord(q){
   if(p.length!==2||isNaN(p[0])||isNaN(p[1])||Math.abs(p[0])>90||Math.abs(p[1])>180)return null;
   return {lat:p[0],lng:p[1]};
 }
-
 function showResults(results,source){
   results.forEach(function(p){
     p.dUser=(userPos&&typeof p.lat==='number'&&typeof p.lng==='number')?distM(userPos.lat,userPos.lng,p.lat,p.lng):null;
@@ -998,12 +859,11 @@ function showResults(results,source){
   currentResults=results;renderResults(results,source);selectResult(0);
   if(userPos)logEvt('SAU_TIM',{sid:lastSid,q:lastQ,count:results.length,lat:userPos.lat,lng:userPos.lng,acc:Math.round(userPos.acc),pt:userPos.time});
 }
-
 function doSearch(){
   var q=$('storeInput').value.trim();resetUI();
   if(!q){$('status').innerHTML='<span class="error">Vui lòng nhập tên cửa hàng hoặc toạ độ.</span>';return;}
-  lastQuery=q;$('searchBtn').disabled=true;$('status').textContent='';
-  ensureFreshPos(false,1).then(function(ok){
+  lastQuery=q;$('searchBtn').disabled=true;$('status').textContent='Đang cập nhật vị trí của bạn...';
+  ensureFreshPos(false).then(function(ok){
     if(!ok){$('searchBtn').disabled=false;return;}
     var c=parseQueryCoord(q);
     $('status').textContent=c?'Đang tìm cửa hàng gần toạ độ này...':'Đang tìm trong danh sách cửa hàng...';
@@ -1013,83 +873,63 @@ function doSearch(){
       $('searchBtn').disabled=false;lastSid=res.sid||'';
       if(res.success){
         playSound('found');
-        $('status').textContent=c?'Cửa hàng gần toạ độ đã nhập:':'Tìm thấy '+res.results.length+' kết quả:';
+        $('status').textContent=c?'Cửa hàng gần toạ độ đã nhập (gần nhất trước):':'Tìm thấy '+res.results.length+' kết quả (gần bạn nhất trước):';
         showResults(res.results,'sheet');
       } else {
         playSound('error');
-        $('status').textContent='';
-        showNotFound(res.message);
-        // Ép hiển thị luôn nút Google Maps ngay tại đây để không bị sót
-        showMapsSearchBtn();
+        $('status').textContent='';showNotFound(res.message);
       }
     });
   });
 }
-
-
 function nearbyMe(){
   playSound('searching');
-  resetUI();lastQuery='';$('searchBtn').disabled=true;$('status').textContent='';
-  ensureFreshPos(true,2).then(function(ok){
+  resetUI();lastQuery='';$('searchBtn').disabled=true;$('status').textContent='Đang xác định vị trí của bạn...';
+  ensureFreshPos(true).then(function(ok){
     if(!ok){$('searchBtn').disabled=false;return;}
-    ldSet('Đang tìm cửa hàng gần bạn nhất...',70,95);
     lastQ='';
     api('nearby',Object.assign({lat:userPos.lat,lng:userPos.lng,kind:'GẦN TÔI',q:''},uparams())).then(function(res){
-      $('searchBtn').disabled=false;lastSid=res.sid||'';ldHide();
-      if(res.success){
-        playSound('found');
-        $('status').textContent='Cửa hàng gần bạn nhất:';
-        showResults(res.results,'sheet');
-      } else {
-        playSound('error');
-        $('status').innerHTML='<span class="error">'+esc(res.message)+'</span>';
-        // Hiển thị ngay nút tìm Google Maps nếu không thấy cửa hàng nội bộ nào
-        showMapsSearchBtn();
-      }
-
+      $('searchBtn').disabled=false;lastSid=res.sid||'';
+      if(res.success){playSound('found');$('status').textContent='Cửa hàng gần bạn nhất:';showResults(res.results,'sheet');}
+      else{playSound('error');$('status').innerHTML='<span class="error">'+esc(res.message)+'</span>';}
+      loadGoogleNearby(userPos.lat,userPos.lng);
     });
   });
 }
-
-
-
-      
+// ----- Cửa hàng tạp hoá do Google Maps đề xuất (hiện riêng ở cuối danh sách) -----
 function loadGoogleNearby(lat,lng){
   var box=$('googleList'),my=++googleSeq;
   googleResults=[];
   box.innerHTML='<div class="g-head">🌐 Cửa hàng do Google đề xuất</div><div class="hint">Đang tìm thêm cửa hàng tạp hoá gần bạn trên Google Maps...</div>';
   api('googleNearby',Object.assign({lat:lat,lng:lng,kind:'GOOGLE ĐỀ XUẤT',q:''},uparams())).then(function(res){
-    if(my!==googleSeq)return;
+    if(my!==googleSeq)return;   // đã tìm lại hoặc xoá kết quả
+    showMapsSearchBtn();
     if(!res||!res.success){
-      box.innerHTML='<div class="g-head">🌐 Cửa hàng do Google đề xuất</div><div class="hint">'+esc((res&&res.message)||'Không lấy được gợi ý.')+'</div>';
-      showMapsSearchBtn();
+      box.innerHTML='<div class="g-head">🌐 Cửa hàng do Google đề xuất</div><div class="hint">'+esc((res&&res.message)||'Không lấy được gợi ý từ Google.')+'</div>';
       return;
     }
+    // bỏ cửa hàng đã có trong danh sách công ty (cách < 30m)
     var list=res.results.filter(function(g){
       return !currentResults.some(function(c){return typeof c.lat==='number'&&distM(c.lat,c.lng,g.lat,g.lng)<30;});
     });
     googleResults=list;
     list.forEach(function(g){g.dUser=userPos?distM(userPos.lat,userPos.lng,g.lat,g.lng):null;});
     if(!list.length){
-      box.innerHTML='<div class="g-head">🌐 Cửa hàng do Google đề xuất</div><div class="hint">Google không có thêm cửa hàng nào khác gần bạn.</div>';
-      showMapsSearchBtn();
-      return;
+      box.innerHTML='<div class="g-head">🌐 Cửa hàng do Google đề xuất</div><div class="hint">Google không có thêm cửa hàng nào khác gần bạn.</div>';return;
     }
-    var h='<div class="g-head">🌐 Cửa hàng do Google đề xuất</div><div class="hint" style="margin:0 0 8px">Dữ liệu từ Google Maps, <b>chưa có trong danh sách của công ty</b>.</div>';
+    var h='<div class="g-head">🌐 Cửa hàng do Google đề xuất</div><div class="hint" style="margin:0 0 8px">Dữ liệu từ Google Maps, <b>chưa có trong danh sách cửa hàng của công ty</b>.</div>';
     list.forEach(function(g,i){
       h+='<div class="card g-card"><div class="result-name">'+esc(g.name)+'</div><div class="result-address">'+esc(g.address||'')+'</div>'+
         (g.dUser!=null?'<div class="dist">📏 Cách bạn ~'+fmtDist(g.dUser)+'</div>':'')+
         '<a class="nav-btn" data-g="'+i+'" href="'+navUrl(g)+'" target="_blank" rel="noopener">🧭 Chỉ đường</a></div>';
     });
     box.innerHTML=h;
-    
-    // Đảm bảo nút Google Maps luôn nằm ở tận cùng dưới cùng của toàn bộ trang kết quả sau khi tải xong Google Nearby
-    showMapsSearchBtn();
   });
 }
+// ----- Nút cuối danh sách: mở Google Maps tìm "cửa hàng tạp hóa" quanh vị trí của bạn -----
 var GROCERY_Q='cửa hàng tạp hóa';
 function showMapsSearchBtn(){
-  $('mapsSearchBox').innerHTML='<div class="notfound" style="margin-top:14px"><p>Chưa thấy cửa hàng bạn cần? Mở Google Maps để tìm thêm.</p>'+
+  $('mapsSearchBox').innerHTML='<div class="notfound" style="margin-top:14px"><p>Chưa thấy cửa hàng bạn cần? Mở Google Maps để tìm thêm cửa hàng tạp hoá quanh vị trí của bạn.</p>'+
     '<button class="btn-red" style="width:100%" onclick="openGroceryMaps()">🗺️ Tìm cửa hàng khác gần tôi trên Google Maps</button></div>';
 }
 function openGroceryMaps(){
@@ -1099,16 +939,14 @@ function openGroceryMaps(){
            :('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(GROCERY_Q).replace(/%20/g,'+'));
   var AL=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.AppLauncher;
   if(!AL){window.open(web,'_blank');return;}
+  // APK: mở thẳng app Google Maps, tìm quanh vị trí hiện tại; không có app thì mở bản web
   var geo=p?('geo:'+p.lat+','+p.lng+'?q='+encodeURIComponent(GROCERY_Q)):('geo:0,0?q='+encodeURIComponent(GROCERY_Q));
   AL.openUrl({url:geo}).then(function(r){if(!r||!r.completed)AL.openUrl({url:web}).catch(function(){});}).catch(function(){AL.openUrl({url:web}).catch(function(){});});
 }
 function showNotFound(msg){
-  var addBtn = '<button class="btn-green" onclick="openForm(false)">➕ '+(isAdmin()?'Thêm mới':'Đề xuất thêm mới')+'</button>';
-  $('notFoundBox').innerHTML = '<div class="notfound"><p>⚠️ ' + esc(msg) + '</p>' +
-   '<div class="row wrap">' +
-   addBtn + '</div></div>';
-   
-
+  var addBtn=isAdmin()?'<button class="btn-green" onclick="openForm(false)">➕ Thêm mới</button>':'';
+  $('notFoundBox').innerHTML='<div class="notfound"><p>⚠️ '+esc(msg)+'</p>'+
+   '<div class="row wrap"><button class="btn-red" onclick="searchOnMaps()">🔎 Tìm trên bản đồ</button>'+addBtn+'</div></div>';
 }
 function searchOnMaps(){
   $('notFoundBox').innerHTML='';$('status').textContent='Đang tìm trên bản đồ...';
@@ -1123,20 +961,7 @@ function searchOnMaps(){
     }
   });
 }
- var selected=null, lastSid='', lastQ='', googleResults=[], googleSeq=0;
-var gpsWatch=null;
-function stopGps(){
-  if(gpsWatch){
-    try{
-      if(gpsWatch.timer)clearTimeout(gpsWatch.timer);
-      if(gpsWatch.id!=null){
-        if(gpsWatch.G)gpsWatch.G.clearWatch({id:gpsWatch.id});
-        else navigator.geolocation.clearWatch(gpsWatch.id);
-      }
-    }catch(e){}
-  }
-  gpsWatch=null;
-} 
+var selected=null, lastSid='', lastQ='', googleResults=[], googleSeq=0;
 function uparams(){return userPos?{ulat:userPos.lat,ulng:userPos.lng,uacc:Math.round(userPos.acc),upt:userPos.time}:{};}
 function logStore(evt,p){
   var o={sid:lastSid,store:p.name,slat:p.lat,slng:p.lng,dist:(p.dUser!=null?Math.round(p.dUser):'')};
@@ -1157,7 +982,7 @@ function renderResults(results,source){
     var adminBtns=(isAdmin()&&source==='sheet'&&p.row)?
       '<div class="admin-actions"><button class="btn-small" onclick="event.stopPropagation();startEdit('+i+')">✏️ Sửa</button>'+
       '<button class="btn-small btn-red" onclick="event.stopPropagation();deleteStore('+i+')">🗑️ Xoá</button></div>':'';
-   c.innerHTML='<div class="result-name">'+esc(p.name)+'</div><div class="result-address">'+esc(p.address||'')+'</div>'+
+    c.innerHTML='<div class="result-name">'+esc(p.name)+'</div><div class="result-address">'+esc(p.address||'')+'</div>'+
       (p.dUser!=null?'<div class="dist">📏 Cách bạn ~'+fmtDist(p.dUser)+'</div>':'')+
       (p.photo?'<div style="margin-top:6px"><a href="'+esc(p.photo)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">🖼️ Xem ảnh cửa hàng</a></div>':'')+
       (!hasGps?'<div class="nogps">⚠️ Chưa có toạ độ GPS</div>':
@@ -1165,14 +990,6 @@ function renderResults(results,source){
       adminBtns;
     el.appendChild(c);
   });
-
-  // Tự động chèn nút tìm Google Maps vào ngay sau thẻ kết quả cuối cùng
-  var btnBox = document.createElement('div');
-  btnBox.className = 'notfound';
-  btnBox.style.marginTop = '14px';
-  btnBox.innerHTML = '<p>Chưa thấy cửa hàng bạn cần? Mở Google Maps để tìm thêm.</p>' +
-    '<button class="btn-red" style="width:100%" onclick="openGroceryMaps()">🗺️ Tìm cửa hàng khác gần tôi trên Google Maps</button>';
-  el.appendChild(btnBox);
 }
 function selectResult(i,byUser){
   document.querySelectorAll('.result-card').forEach(function(c){c.classList.remove('selected');});
@@ -1181,7 +998,9 @@ function selectResult(i,byUser){
   if(byUser&&p)logStore('CHON',p);
   if(!p||typeof p.lat!=='number'||typeof p.lng!=='number'){$('mapSection').classList.add('hidden');return;}
   $('coordValue').textContent=p.lat.toFixed(7)+' '+p.lng.toFixed(7);
+  $('distLine').textContent=(p.dUser!=null)?('📏 Cách bạn khoảng '+fmtDist(p.dUser)+' (đường thẳng). Lộ trình thực tế xem trong Google Maps.'):'';
   $('navLink').href=navUrl(p);
+  markMode();
   $('mapSection').classList.remove('hidden');
 }
 function copyText(t,btn){
@@ -1201,71 +1020,14 @@ function clearForm(){
   $('photoPreview').classList.add('hidden');$('suggestList').innerHTML='';$('addStatus').innerHTML='';
   photoData=null;gpsAcc=null;
 }
-var LD={on:false,pct:0,cap:60,tick:null,typ:null,words:[],n:0};
-function ldDraw(){var p=Math.floor(LD.pct);$('ldPct').textContent=p+'%';$('ldFill').style.width=p+'%';}
-function ldShow(title,step,cap){
-  if(!LD.on){
-    LD.on=true;LD.pct=0;LD.n=0;LD.words=String(title).split(' ');
-    $('ldStep').textContent=step||'';ldDraw();
-    $('loader').classList.add('on');
-    clearInterval(LD.tick);clearInterval(LD.typ);
-    LD.tick=setInterval(function(){
-      if(LD.pct<LD.cap)LD.pct+=Math.max(.15,(LD.cap-LD.pct)*.04);
-      ldDraw();
-    },150);
-    // chữ chạy: từng từ, rồi thêm dấu . .. ...
-    LD.typ=setInterval(function(){
-      var w=LD.words.length,n=LD.n++%(w+3),t;
-      if(n<w)t=LD.words.slice(0,n+1).join(' ');
-      else t=LD.words.join(' ')+'.'.repeat(n-w+1);
-      $('ldTitle').textContent=t;
-    },320);
-  }
-  LD.cap=cap||LD.cap;if(step)$('ldStep').textContent=step;
-}
-function ldSet(step,floor,cap){
-  if(!LD.on)return;
-  if(step)$('ldStep').textContent=step;
-  if(floor&&LD.pct<floor)LD.pct=floor;
-  if(cap)LD.cap=cap;
-  ldDraw();
-}
-function ldHide(){
-  if(!LD.on)return;
-  LD.pct=100;ldDraw();$('ldStep').textContent='Hoàn tất';
-  clearInterval(LD.tick);
-  setTimeout(function(){
-    $('loader').classList.remove('on');clearInterval(LD.typ);LD.on=false;
-  },350);
-}
-var toastT1=null,toastT2=null;
-function showToast(msg,isErr){
-  var t=$('toast');clearTimeout(toastT1);clearTimeout(toastT2);
-  t.className='';void t.offsetWidth;
-  t.textContent=msg;t.className=(isErr?'err ':'')+'show';
-  toastT1=setTimeout(function(){t.className=(isErr?'err ':'')+'out';},isErr?3500:4500);
-  toastT2=setTimeout(function(){t.className='';t.textContent='';},isErr?4300:5300);
-}
-// Khu vực Hà Nội (xấp xỉ theo khung toạ độ)
-var HN_BOX={latMin:20.56,latMax:21.39,lngMin:105.28,lngMax:106.02};
-function inHanoi(p){return !!p&&p.lat>=HN_BOX.latMin&&p.lat<=HN_BOX.latMax&&p.lng>=HN_BOX.lngMin&&p.lng<=HN_BOX.lngMax;}
-function updateAddBtn(){var b=$('btnAdd');if(b)b.classList.toggle('noadd',!!userPos&&!inHanoi(userPos));}
 function openForm(editing){
-  if(editing){openFormReal(true);return;}
-  ensureFreshPos(false,1).then(function(ok){
-    if(!ok||!userPos){showToast('Không xác định được vị trí của bạn nên chưa thể thêm cửa hàng mới.',true);return;}
-    if(!inHanoi(userPos)){showToast('Chỉ người dùng ở khu vực Hà Nội mới có quyền thêm cửa hàng mới.',true);return;}
-    openFormReal(false);
-  });
-}
-function openFormReal(editing){
   stopGps();
   $('notFoundBox').innerHTML='';
   if(!editing){
     editRow=null;editName=null;clearForm();
     $('addName').value=$('storeInput').value.trim();
-    $('formTitle').textContent=isAdmin()?'➕ Thêm cửa hàng mới':'📝 Đề xuất cửa hàng mới';
-    $('saveBtn').textContent=isAdmin()?'💾 Lưu cửa hàng':'📨 Gửi đề xuất';
+    $('formTitle').textContent='➕ Thêm cửa hàng mới';
+    $('saveBtn').textContent='💾 Lưu cửa hàng';
     $('photoLabel').textContent='Ảnh cửa hàng';
     $('editBanner').classList.add('hidden');
   }
@@ -1283,14 +1045,14 @@ function startEdit(i){
   if(typeof p.lat==='number'&&typeof p.lng==='number')setCoord(p.lat,p.lng);
   $('formTitle').textContent='✏️ Sửa cửa hàng';
   $('saveBtn').textContent='💾 Lưu thay đổi';
-  $('photoLabel').textContent='Ảnh cửa hàng (giữ trống nếu không đổi)';
+  $('photoLabel').textContent='Ảnh cửa hàng (chọn ảnh mới nếu muốn thay, bỏ trống để giữ ảnh cũ)';
   $('editBanner').textContent='Đang sửa: '+p.name;
   $('editBanner').classList.remove('hidden');
   openForm(true);
 }
 function deleteStore(i){
   var p=currentResults[i];if(!p||!p.row)return;
-  if(!confirm('Xoá cửa hàng "'+p.name+'" khỏi danh sách?'))return;
+  if(!confirm('Xoá cửa hàng "'+p.name+'" khỏi danh sách?\n\nDòng này sẽ bị xoá khỏi Google Sheet (dữ liệu cũ được lưu trong tab NhatKy).'))return;
   $('status').textContent='Đang xoá...';
   api('delete',{data:{row:p.row,expectName:p.name}},true).then(function(res){
     if(res.success){$('status').innerHTML='<span class="ok">✅ '+esc(res.message)+'</span>';resetUI();}
@@ -1304,52 +1066,105 @@ function readCoord(){
   if(p.length!==2||isNaN(p[0])||isNaN(p[1])||Math.abs(p[0])>90||Math.abs(p[1])>180)return null;
   return {lat:p[0],lng:p[1]};
 }
+function resolveLink(){
+  var l=$('addLink').value.trim();
+  if(!l){addMsg('Hãy dán link Google Maps trước.','error');return;}
+  addMsg('Đang đọc link...');
+  api('resolve',{url:l}).then(function(res){
+    if(!res.success){addMsg(res.message,'error');return;}
+    setCoord(res.lat,res.lng);
+    if(!$('addName').value&&res.name){try{$('addName').value=decodeURIComponent(res.name);}catch(e){$('addName').value=res.name;}}
+    addMsg('✅ Đã lấy toạ độ từ link.','ok');
+  });
+}
+
+// ---------- GPS: dò liên tục, giữ kết quả sai số nhỏ nhất ----------
+var gpsWatch=null;
+function stopGps(){
+  var w=gpsWatch;if(!w)return;
+  gpsWatch=null;clearTimeout(w.timer);
+  try{
+    if(w.id!=null){ if(w.G)w.G.clearWatch({id:w.id}); else navigator.geolocation.clearWatch(w.id); }
+  }catch(e){}
+}
 function getMyLocation(){
   stopGps();
-  var native=isNativeApp();
+  if(!isNativeApp()&&!isAdmin()){addMsg('Bản web không chống được GPS giả nên không cho lấy vị trí máy để thêm cửa hàng. Hãy dùng app APK, hoặc nhập toạ độ tay.','error');return;}
   var G=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Geolocation;
-  // PC/Laptop không có chip GPS nên sai số lớn hơn, đặt ngưỡng và thời gian chờ thấp hơn
-  var TARGET=native?10:50, MAXWAIT=native?30000:15000, best=null;
+  var TARGET=10, MAXWAIT=30000, best=null;
   var token={id:null,G:G||null,timer:null};
   gpsWatch=token;
-  addMsg('Đang dò vị trí...');
+  addMsg('Đang dò GPS... hãy đứng ngoài trời, gần cửa hàng.');
+
   function finish(){
     if(gpsWatch!==token)return;
     stopGps();
-    if(!best){addMsg('Không lấy được vị trí. Hãy kiểm tra đã bật định vị và cho phép trình duyệt truy cập vị trí.','error');return;}
+    if(!best){addMsg('Không lấy được vị trí. Hãy bật Vị trí (chế độ độ chính xác cao), ra chỗ thoáng rồi thử lại.','error');return;}
     guardCheck().then(function(g){
-      if(g&&g.mock&&!isAdmin()){gpsAcc=null;addMsg(MSG_FAKE,'error');return;}
-      setCoord(best.lat,best.lng,best.acc);
-      var note=(!native&&best.acc>100)?' PC/Laptop định vị theo Wi-Fi/IP nên có thể lệch, hãy kiểm tra lại.':'';
-      addMsg('✅ Đã lấy vị trí (sai số ~'+Math.round(best.acc)+'m).'+note,'ok');
+    if(g&&g.mock){
+      if(!isAdmin()){gpsAcc=null;logGpsErr(MSG_FAKE);addMsg(MSG_FAKE,'error');return;}
+      logAdminFake(g);
+    }
+    setCoord(best.lat,best.lng,best.acc);
+    var a=Math.round(best.acc);
+    if(a<=15) addMsg('✅ Đã lấy vị trí rất chính xác (sai số ~'+a+'m).','ok');
+    else if(a<=50) addMsg('⚠️ Sai số ~'+a+'m, chỉ tạm chấp nhận. Ra chỗ thoáng hơn và bấm lấy lại để chính xác hơn.','error');
+    else addMsg('⚠️ Sai số lớn (~'+a+'m), vị trí có thể lệch nhiều. Hãy ra ngoài trời rồi bấm lấy lại, hoặc dùng link Google Maps.','error');
     });
   }
   function onPos(pos){
     if(gpsWatch!==token||!pos||!pos.coords)return;
     var acc=pos.coords.accuracy;
     if(!best||acc<best.acc)best={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:acc};
+    var secs=Math.round((Date.now()-started)/1000);
+    addMsg('Đang dò GPS... '+secs+'s | hiện tại ~'+Math.round(acc)+'m | tốt nhất ~'+Math.round(best.acc)+'m');
     if(best.acc<=TARGET)finish();
   }
+  function fail(msg){
+    if(gpsWatch!==token)return;
+    stopGps();
+    addMsg(msg||'Không lấy được GPS. Hãy bật Vị trí, cấp quyền "Chính xác", hoặc dùng link Google Maps.','error');
+  }
+
+  var started=Date.now();
   token.timer=setTimeout(finish,MAXWAIT);
   var opts={enableHighAccuracy:true,timeout:20000,maximumAge:0};
+
   if(G){
     G.requestPermissions().then(function(){
       if(gpsWatch!==token)return null;
-      return G.watchPosition(opts,function(pos){ if(pos)onPos(pos); });
-    }).then(function(id){ if(id!=null)token.id=id; }).catch(function(){addMsg('Lỗi GPS','error');});
+      return G.watchPosition(opts,function(pos,err){ if(pos)onPos(pos); });
+    }).then(function(id){
+      if(id==null)return;
+      if(gpsWatch!==token){try{G.clearWatch({id:id});}catch(e){}return;}
+      token.id=id;
+    }).catch(function(){fail();});
   } else if(navigator.geolocation){
-    token.id=navigator.geolocation.watchPosition(onPos,function(err){
-      if(gpsWatch!==token)return;
-      if(err&&err.code===1){
-        stopGps();
-        addMsg('Trình duyệt đang chặn quyền vị trí. Bấm biểu tượng ổ khoá cạnh thanh địa chỉ → cho phép "Vị trí" rồi thử lại.','error');
-      }
-      // lỗi khác (timeout...): đợi tới hết MAXWAIT rồi finish() xử lý
-    },opts);
-    } else {
-    stopGps();
-    addMsg('Trình duyệt không hỗ trợ định vị.','error');
+    token.id=navigator.geolocation.watchPosition(onPos,function(){},opts);
+  } else {
+    fail('Thiết bị không hỗ trợ GPS.');
   }
+}
+
+function suggestPlaces(){
+  var n=$('addName').value.trim();
+  if(!n){addMsg('Nhập tên cửa hàng trước khi gợi ý.','error');return;}
+  addMsg('Đang tìm gợi ý...');
+  api('places',{query:n}).then(function(res){
+    var box=$('suggestList');box.innerHTML='';
+    if(!res.success){addMsg(res.message,'error');return;}
+    addMsg('Chọn 1 gợi ý (hãy kiểm tra lại độ chính xác):');
+    res.results.forEach(function(p){
+      var d=document.createElement('div');d.className='suggest';
+      d.innerHTML='<b>'+esc(p.name)+'</b><br>'+esc(p.address||'');
+      d.onclick=function(){
+        setCoord(p.lat,p.lng);
+        if(!$('addAddress').value)$('addAddress').value=p.address||'';
+        box.innerHTML='';addMsg('✅ Đã điền toạ độ từ gợi ý.','ok');
+      };
+      box.appendChild(d);
+    });
+  });
 }
 function onPhoto(input){
   var f=input.files&&input.files[0];photoData=null;$('photoPreview').classList.add('hidden');
@@ -1369,21 +1184,15 @@ function onPhoto(input){
   };
   rd.readAsDataURL(f);
 }
-
 function submitStore(){
-  var name=$('addName').value.trim();
-  var raw=$('addCoord').value.trim(), c=null;
+  var name=$('addName').value.trim(),c=readCoord();
   if(!name){addMsg('Vui lòng nhập tên cửa hàng.','error');return;}
-  if(raw){
-    c=readCoord();
-    if(!c){addMsg('Toạ độ chưa hợp lệ (có thể để trống).','error');return;}
-  }
+  if(!c){addMsg('Toạ độ chưa hợp lệ. Dạng đúng: 20.925094 105.851222','error');return;}
+  if(gpsAcc!==null&&gpsAcc>50&&!confirm('Sai số GPS khoảng '+Math.round(gpsAcc)+'m, vị trí có thể bị lệch. Vẫn lưu?'))return;
   var editing=(editRow!==null);
-  if(!editing&&!inHanoi(userPos)){showToast('Chỉ người dùng ở khu vực Hà Nội mới có quyền thêm cửa hàng mới.',true);return;}
   var data={
     name:name,address:$('addAddress').value.trim(),link:$('addLink').value.trim(),
-    lat:c?c.lat:'',lng:c?c.lng:'',acc:(c&&gpsAcc!==null?Math.round(gpsAcc):''),
-    photoBase64:photoData,photoName:name+'_'+Date.now()
+    lat:c.lat,lng:c.lng,acc:(gpsAcc!==null?Math.round(gpsAcc):''),photoBase64:photoData,photoName:name+'_'+Date.now()
   };
   if(editing){data.row=editRow;data.expectName=editName;}
   $('saveBtn').disabled=true;addMsg('Đang lưu...');
@@ -1395,30 +1204,34 @@ function submitStore(){
       $('status').innerHTML='<span class="ok">✅ '+esc(res.message)+'</span>';
       if(lastQuery)doSearch();
     } else {
-      clearForm();closeForm();
-      showToast('Cảm ơn sự đóng góp của bạn, thông tin bạn vừa cung cấp sẽ được chuyển xuống các phòng ban có liên quan chờ điều chỉnh.');
+      clearForm();
+      addMsg('✅ '+res.message,'ok');
     }
   });
 }
 
-// ---------- NHẬP FILE / LINK HÀNG LOẠT ----------
+// ---------- NHẬP FILE / LINK: TÌM HÀNG LOẠT ----------
 var impItems=[], impBusy=false, impQueue=null, IMP_MAX=500, IMP_NEAR=50;
 var SHEET_RE=/docs\.google\.com\/spreadsheets\/d\/([A-Za-z0-9_-]+)/;
 function toggleImport(){var s=$('importSection');s.classList.toggle('hidden');if(!s.classList.contains('hidden'))s.scrollIntoView({behavior:'smooth'});}
 function impMsg(m,t){$('impStatus').innerHTML='<span class="'+(t||'')+'">'+esc(m)+'</span>';}
 function impClear(){if(impBusy)return;$('impText').value='';$('impFile').value='';$('impList').innerHTML='';$('impStatus').innerHTML='';$('impInfo').textContent='';$('impTools').classList.add('hidden');impItems=[];impQueue=null;}
+
+// --- chuẩn hoá chữ: bỏ dấu, chữ thường ---
 function impNorm(s){return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9]+/g,' ').trim();}
+// Chấm điểm tiêu đề cột: có phải cột TÊN CỬA HÀNG / ĐIỂM BÁN / TẠP HOÁ / SHOP không
 function impNameScore(h){
   h=impNorm(h);if(!h)return 0;
-  if(/(tong hop|danh sach|kvtt|activation)/.test(h))return 0;
+  if(/(tong hop|danh sach|kvtt|activation|theo |tong cong|bang )/.test(h))return 0;   // tiêu đề của bảng tổng hợp, không phải cột tên cửa hàng
   if(h.split(' ').length>6)return 0;
-  if(/^(ma|so|stt|nguoi|ho ten|sdt|dien thoai|duong|phuong|xa|quan|huyen|thanh pho|tinh)( |$)/.test(h))return 0;
+  if(/^(ma|so|stt|nguoi|ho ten|ho va ten|sdt|dien thoai|duong|phuong|xa|quan|huyen|thanh pho|tinh|loai|khu vuc|sup|asm|nvbh|npp|ghi chu|dia chi|toa do|ngay|trang thai)( |$)/.test(h))return 0;
   if(h==='ten diem ban')return 100;
-  if(/^ten (cua hang|tap hoa|shop|dai ly|diem ban)/.test(h))return 95;
+  if(/^ten (cua hang|tap hoa|shop|dai ly|diem ban|cua tiem|tiem)/.test(h))return 95;
   if(/(diem ban|cua hang|tap hoa|shop|store)/.test(h))return 80;
-  if(h==='ten'||h==='name')return 50;
+  if(h==='ten'||h==='name'||h==='ten kh'||h==='ten khach hang')return 50;
   return 0;
 }
+// Tìm dòng tiêu đề (trong 25 dòng đầu) + cột tên cửa hàng; lấy luôn mã điểm bán, đường, phường, quận, tỉnh để đối chiếu
 function impExtract(rows,sheetName){
   var best=null,maxScan=Math.min(rows.length,25),r,c,row,sc;
   for(r=0;r<maxScan;r++){
@@ -1428,30 +1241,38 @@ function impExtract(rows,sheetName){
   if(!best)return null;
   var hdr=(rows[best.r]||[]).map(impNorm);
   function find(re){for(var i=0;i<hdr.length;i++)if(re.test(hdr[i]))return i;return -1;}
-  var cCode=find(/^ma (diem ban|cua hang|kh)/),cStreet=find(/^(duong|dia chi)/),cWard=find(/^(phuong|xa)/),cDist=find(/^(quan|huyen)/),cCity=find(/^(thanh pho|tinh)/);
+  var cCode=find(/^ma (diem ban|cua hang|kh|khach hang|shop)/),cStreet=find(/^(duong|dia chi|so nha)/),cWard=find(/^(phuong|xa)( |$)/),cDist=find(/^(quan|huyen)( |$)/),cCity=find(/^(thanh pho|tinh|tp)( |$)/);
   function cell(row,i){return i<0?'':String(row[i]==null?'':row[i]).trim();}
   var items=[],nameHdr=hdr[best.c];
+  // Dòng có liên quan Hà Nội: bất kỳ ô nào là HN, HN1, HN2, Hà Nội, Hanoi, Hànội...
   var HN_RE=/(^| )(hn ?[0-9]?|ha ?noi)( |$)/;
   function rowHN(row){for(var i=0;i<row.length;i++){if(HN_RE.test(impNorm(row[i])))return true;}return false;}
   var dataRows=[],hnCount=0;
   for(r=best.r+1;r<rows.length;r++){row=rows[r]||[];if(!cell(row,best.c))continue;dataRows.push(row);if(rowHN(row))hnCount++;}
-  var useHN=hnCount>0;
-  var BAD_RE=/^(kvtt|tong|total|cong|stt|hn)/;
+  var useHN=hnCount>0;   // file không có dấu hiệu Hà Nội nào thì không lọc, để khỏi mất hết dữ liệu
+  // Giá trị chắc chắn không phải tên cửa hàng: tên vùng, dòng tổng, mã, số
+  var BAD_RE=/^(kvtt|tong|total|cong|stt|ten diem ban|ha noi ?[0-9]|tay bac|dong bac|song hong ?[0-9]?|hn ?[0-9]|hn)( |$)/;
+  var skipHN=0,skipBad=0;
   for(var di=0;di<dataRows.length;di++){
     row=dataRows[di];
-    var nm=cell(row,best.c),nn=impNorm(nm);
-    if(!nn||nn===nameHdr||nn.length<2||/^[0-9 ]+$/.test(nn)||BAD_RE.test(nn))continue;
-    if(useHN&&!rowHN(row))continue;
+    var nm=cell(row,best.c);
+    var nn=impNorm(nm);
+    if(!nn||nn===nameHdr||nn.length<2||/^[0-9 ]+$/.test(nn)||/^[a-z] ?[0-9]{5,}$/.test(nn)||BAD_RE.test(nn)){skipBad++;continue;}
+    if(useHN&&!rowHN(row)){skipHN++;continue;}
     var addr=[cell(row,cStreet),cell(row,cWard),cell(row,cDist),cell(row,cCity)].filter(Boolean).join(', ');
     var code=cell(row,cCode);
     items.push({input:nm,addr:addr,info:(code?'Mã '+code:'')+(code&&addr?' • ':'')+addr,sheet:sheetName||''});
   }
-  return items.length?{items:items,col:String(rows[best.r][best.c]).trim(),n:items.length,sc:best.sc}:null;
+  var note=(useHN?', đã lọc Hà Nội, bỏ '+skipHN+' dòng ngoài Hà Nội':'')+(skipBad?', bỏ '+skipBad+' dòng không phải tên cửa hàng':'');
+  return items.length?{items:items,col:String(rows[best.r][best.c]).trim(),n:items.length,sc:best.sc,note:note}:null;
 }
+
+// --- đọc file ---
 function impParseCsv(text){
   text=text.replace(/^\uFEFF/,'');
   var first=text.split(/\r?\n/)[0]||'';
-  var d=first.indexOf('\t')>-1?'\t':(first.indexOf(';')>-1?';':',');
+  var d=first.indexOf('\t')>-1?'\t':(first.indexOf(';')>-1?';':(/^\s*https?:/i.test(first)?'':','));
+  if(!d)return text.split(/\r?\n/).map(function(l){return [l];});   // file 1 cột toàn link: không tách dấu phẩy trong link
   var rows=[],row=[],cur='',q=false,i,ch;
   for(i=0;i<text.length;i++){
     ch=text.charAt(i);
@@ -1464,6 +1285,7 @@ function impParseCsv(text){
   row.push(cur);rows.push(row);
   return rows;
 }
+// File không có tiêu đề nhận ra được (danh sách tên / link thuần): lấy cột đầu tiên
 function impPickCol(rows){
   rows=rows.filter(function(r){return r&&r.some(function(c){return String(c==null?'':c).trim()!=='';});});
   return rows.map(function(r){return String(r[0]==null?'':r[0]).trim();}).filter(Boolean);
@@ -1477,6 +1299,7 @@ function impLoadXlsx(){
     document.head.appendChild(s);
   });
 }
+// Quét TẤT CẢ các tab trong file Excel, tab nào có cột tên cửa hàng thì lấy
 function impFromWorkbook(wb){
   var all=[],log=[],exs=[];
   wb.SheetNames.forEach(function(n){
@@ -1486,8 +1309,8 @@ function impFromWorkbook(wb){
   });
   var top=0;exs.forEach(function(e){if(e.sc>top)top=e.sc;});
   exs.forEach(function(e){
-    if(top>=90&&e.sc<90)return;
-    all=all.concat(e.items);log.push('«'+e.sheetName+'»');
+    if(top>=90&&e.sc<90)return;   // đã có tab chuẩn "Tên điểm bán" thì bỏ tab chỉ khớp mơ hồ
+    all=all.concat(e.items);log.push('«'+e.sheetName+'»: cột "'+e.col+'" ('+e.n+' dòng'+(e.note||'')+')');
   });
   if(all.length)return {items:all,log:log,tabs:wb.SheetNames.length};
   var rows0=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:false,defval:''});
@@ -1496,16 +1319,17 @@ function impFromWorkbook(wb){
 function impStart(res){
   var seen={},q=[];
   res.items.forEach(function(x){var k=x.input+'|'+(x.addr||'');if(!seen[k]){seen[k]=1;q.push(x);}});
-  if(!q.length){impMsg('Không tìm thấy dữ liệu phù hợp trong file.','error');return;}
+  if(!q.length){impMsg('Không tìm thấy cột tên cửa hàng nào (Tên điểm bán, Cửa hàng, Tạp hoá, Shop...) trong file.','error');return;}
   impQueue=q;
   $('impText').value=q.map(function(x){return x.input;}).join('\n');
-  impRun();
+  $('impInfo').textContent=res.fallback?'Không thấy cột "Tên điểm bán / Cửa hàng / Tạp hoá / Shop" nào, đã lấy cột đầu tiên.':('Đọc '+res.tabs+' tab, lấy tên cửa hàng ở '+res.log.length+' tab: '+res.log.join('; ')+'.');
+  impRun();   // đọc xong tự tìm luôn
 }
 function impParseBuffer(buf){
   try{
     var wb=XLSX.read(buf,{type:'array'});
     impStart(impFromWorkbook(wb));
-  }catch(x){impMsg('Không đọc được file Excel.','error');}
+  }catch(x){impMsg('Không đọc được file Excel. Hãy tải về dạng .xlsx hoặc .csv rồi thử lại.','error');}
 }
 function impLoadFile(inp){
   var f=inp.files&&inp.files[0];if(!f)return;
@@ -1516,18 +1340,21 @@ function impLoadFile(inp){
     impLoadXlsx().then(function(){
       rd.onload=function(e){impParseBuffer(e.target.result);};
       rd.readAsArrayBuffer(f);
-    }).catch(function(){impMsg('Không tải được bộ đọc Excel.','error');});
+    }).catch(function(){impMsg('Không tải được bộ đọc Excel (cần có mạng). Hãy lưu file thành .csv rồi thử lại.','error');});
     return;
   }
   rd.onload=function(e){
     var t=String(e.target.result);
     var rows=ext==='txt'?t.split(/\r?\n/).map(function(l){return [l];}):impParseCsv(t);
     var ex=impExtract(rows,'');
-    if(ex)impStart({items:ex.items,log:['cột «'+ex.col+'»'],tabs:1});
+    if(ex)impStart({items:ex.items,log:['cột "'+ex.col+'" ('+ex.n+' dòng'+(ex.note||'')+')'],tabs:1});
     else impStart({items:impPickCol(rows).map(function(s){return {input:s};}),log:[],tabs:1,fallback:true});
   };
+  rd.onerror=function(){impMsg('Không đọc được file.','error');};
   rd.readAsText(f,'UTF-8');
 }
+
+// --- dán link Google Sheets: tải cả file về (mọi tab) rồi quét như file Excel ---
 function getHttp(){
   try{var C=window.Capacitor;if(isNativeApp())return (C.Plugins&&C.Plugins.CapacitorHttp)||(C.registerPlugin?C.registerPlugin('CapacitorHttp'):null);}catch(e){}
   return null;
@@ -1535,7 +1362,7 @@ function getHttp(){
 function impFetchSheet(id){
   var url='https://docs.google.com/spreadsheets/d/'+id+'/export?format=xlsx';
   var H=getHttp();
-  if(H&&H.get){
+  if(H&&H.get){   // APK: gọi bằng native nên không bị chặn CORS
     return H.get({url:url,responseType:'arraybuffer'}).then(function(r){
       if(!r||r.status>=400)throw new Error('http');
       var b=atob(String(r.data||'')),u=new Uint8Array(b.length),i;
@@ -1548,10 +1375,15 @@ function impFetchSheet(id){
 function impLoadSheetLink(id){
   impMsg('Đang tải Google Sheet...');
   impLoadXlsx().then(function(){return impFetchSheet(id);}).then(function(u){
-    if(!(u&&u.length>4&&u[0]===0x50&&u[1]===0x4B))throw new Error('notxlsx');
+    if(!(u&&u.length>4&&u[0]===0x50&&u[1]===0x4B))throw new Error('notxlsx');   // không phải file xlsx (thường là trang đăng nhập)
     impParseBuffer(u);
-  }).catch(function(){impMsg('Không tải được Google Sheet từ link.','error');});
+  }).catch(function(e){
+    if(e&&e.message==='lib'){impMsg('Không tải được bộ đọc Excel (cần có mạng).','error');return;}
+    impMsg('Không tải được Google Sheet từ link này. Hãy mở sheet, bấm Chia sẻ, chọn "Bất kỳ ai có đường liên kết" quyền Người xem, và dùng app APK (bản web bị Google chặn). Hoặc tải file về: Tệp > Tải xuống > Microsoft Excel (.xlsx), rồi chọn file ở ô bên dưới.','error');
+  });
 }
+
+// --- tìm từng dòng ---
 function impRun(){
   if(impBusy)return;
   var queue=impQueue,cut=false;
@@ -1560,6 +1392,7 @@ function impRun(){
     var lines=$('impText').value.split(/\r?\n/).map(function(s){return s.trim();}).filter(function(s){if(!s||seen[s])return false;seen[s]=1;return true;});
     if(!lines.length){impMsg('Chưa có dòng nào để tìm.','error');return;}
     if(lines.length===1&&SHEET_RE.test(lines[0])){impLoadSheetLink(lines[0].match(SHEET_RE)[1]);return;}
+    $('impInfo').textContent='';
     queue=lines.map(function(s){return {input:s};});
   }
   if(queue.length>IMP_MAX){cut=true;queue=queue.slice(0,IMP_MAX);}
@@ -1567,8 +1400,9 @@ function impRun(){
   playSound('searching');
   impItems=queue.map(function(x){return {input:x.input,addr:x.addr||'',info:x.info||'',sheet:x.sheet||'',state:'wait',matches:[]};});
   impRender();
+  impMsg('Đang cập nhật vị trí của bạn...');
   ensureFreshPos(false).then(function(ok){
-    if(!ok){impBusy=false;$('impBtn').disabled=false;impMsg('Chưa lấy được vị trí GPS.','error');return;}
+    if(!ok){impBusy=false;$('impBtn').disabled=false;impMsg('Chưa lấy được vị trí GPS nên chưa tìm được.','error');return;}
     var next=0,done=0,total=impItems.length;
     function worker(){
       if(next>=total)return Promise.resolve();
@@ -1581,27 +1415,27 @@ function impRun(){
       impBusy=false;$('impBtn').disabled=false;
       var a=0,b=0;
       impItems.forEach(function(x){if(x.state==='ok')a++;else if(x.state==='near')b++;});
-      impMsg('Xong '+total+' dòng: '+a+' khớp, '+b+' cần kiểm tra.'+(cut?' (Tối đa 500 dòng)':''),'ok');
+      impMsg('Xong '+total+' dòng: '+a+' khớp chắc, '+b+' gần giống / cần kiểm tra, '+(total-a-b)+' chưa thấy.'+(cut?' (Chỉ xử lý '+IMP_MAX+' dòng đầu, hãy chia nhỏ file.)':''),'ok');
       playSound(a+b?'found':'error');
       $('impTools').classList.remove('hidden');
-      logEvt('NHAP_FILE',{note:'Nhập '+total+' dòng'});
+      logEvt('NHAP_FILE',{note:'Nhập '+total+' dòng, khớp chắc '+a+', gần giống '+b});
     });
   });
 }
 function impOne(it){
   var s=it.input,c=parseQueryCoord(s);
-  if(/^https?:\/\//i.test(s)||/^(www\.)?(maps\.app\.goo\.gl|goo\.gl\/maps)/i.test(s)){
+  if(/^https?:\/\//i.test(s)||/^(www\.)?(maps\.app\.goo\.gl|goo\.gl\/maps|google\.[a-z.]+\/maps)/i.test(s)){
     it.type='link';
     var url=/^https?:/i.test(s)?s:'https://'+s;
     return api('resolve',{url:url}).then(function(r){
-      if(!r||!r.success){it.state='none';it.note=(r&&r.message)||'Lỗi đọc link.';return;}
+      if(!r||!r.success){it.state='none';it.note=(r&&r.message)||'Không đọc được link này.';return;}
       it.lat=r.lat;it.lng=r.lng;
       var nm='';
       if(r.name){try{nm=decodeURIComponent(String(r.name).replace(/\+/g,' '));}catch(e){nm=String(r.name);}}
       it.label=nm;
       return impNear(it).then(function(){
         if(it.state==='ok'||!nm)return;
-        return impByName(it,nm,true);
+        return impByName(it,nm,true);   // không trùng vị trí thì thử tìm theo tên trong link
       });
     });
   }
@@ -1619,12 +1453,13 @@ function impNear(it){
     });
     list.sort(function(a,b){return a.dRef-b.dRef;});
     var near=list.filter(function(p){return p.dRef<=IMP_NEAR;});
-    if(near.length){it.matches=near;it.state='ok';it.how='Trùng vị trí';}
+    if(near.length){it.matches=near;it.state='ok';it.how='Trùng vị trí (trong '+IMP_NEAR+'m)';}
     else{it.state='none';it.nearest=list[0]||null;}
   });
 }
+// Đối chiếu địa chỉ trong file với địa chỉ cửa hàng trong sheet công ty
 function impAddrTokens(addr){
-  return impNorm(addr).split(' ').filter(function(w){return w.length>=3&&!/^(duong|pho|phuong|xa|quan|huyen)$/.test(w);});
+  return impNorm(addr).split(' ').filter(function(w){return w.length>=3&&!/^(duong|pho|phuong|xa|quan|huyen|thanh|tinh|ngo|ngach|khu)$/.test(w);});
 }
 function impAddrScore(tokens,address){
   if(!tokens.length||!address)return 0;
@@ -1636,7 +1471,8 @@ function impSearchName(q){return api('search',Object.assign({query:q},uparams())
 function impByName(it,name,fromLink){
   return impSearchName(name).then(function(res){
     if(res&&res.success&&res.results&&res.results.length)return res;
-    var short=name.replace(/^(tạp hóa|tạp hoá|cửa hàng|quán|tiệm|shop)\s+/i,'').trim();
+    // không thấy: thử lại bỏ chữ đứng đầu như "Tạp hoá", "Cửa hàng"...
+    var short=name.replace(/^(tạp hóa|tạp hoá|cửa hàng|cửa hiệu|quán|tiệm|shop|ch)\s+/i,'').trim();
     if(short&&short!==name&&short.length>=2)return impSearchName(short);
     return res;
   }).then(function(res){
@@ -1650,19 +1486,21 @@ function impByName(it,name,fromLink){
       p._sc=(p._ex?3:0)+p._as;
       p._i=i;
     });
-    list.sort(function(a,b){return (b._sc-a._sc)||(a._i-b._i);});
+    list.sort(function(a,b){return (b._sc-a._sc)||(a._i-b._i);});   // trùng tên + trùng địa chỉ lên đầu
     var top=list[0];
     it.matches=list;
-    if(fromLink){it.state='near';it.how='Trùng tên khác vị trí';}
+    if(fromLink){it.state='near';it.how='Trùng tên nhưng khác vị trí so với link';}
     else if(top._ex||top._as>=2){
       it.state='ok';
-      it.how=top._ex?'Trùng tên':'Khớp địa chỉ';
+      it.how=top._ex?(top._as>=2?'Trùng tên và địa chỉ':'Trùng tên'):'Tên gần giống, khớp địa chỉ';
     } else {
       it.state='near';
-      it.how='Cần kiểm tra lại';
+      it.how='Tên gần giống, chưa chắc đúng, hãy kiểm tra';
     }
   });
 }
+
+// --- hiển thị kết quả ---
 function impRowHtml(it,i){
   var ic={wait:'⏳',ok:'✅',near:'🟡',none:'⚠️',err:'❌'}[it.state]||'⏳';
   var title=it.label||it.input;if(title.length>80)title=title.slice(0,77)+'…';
@@ -1674,20 +1512,21 @@ function impRowHtml(it,i){
     var p=it.matches[0],more=it.matches.length-1;
     h+='<div class="imp-m"><b>'+esc(p.name)+'</b>'+(p.address?'<br>'+esc(p.address):'')+
       (p.dUser!=null?'<br><span class="ok">📏 Cách bạn ~'+fmtDist(p.dUser)+'</span>':'')+
-      '<br><span class="hint">'+esc(it.how||'')+(more>0?' • +'+more+' kết quả':'')+'</span></div>'+
+      '<br><span class="hint">'+esc(it.how||'')+(it.state==='near'&&it.type==='link'&&p.dRef!=null?' (cách vị trí link ~'+fmtDist(p.dRef)+')':'')+(more>0?' • +'+more+' kết quả khác':'')+'</span></div>'+
       '<div class="imp-btns"><button class="btn-small" onclick="impView('+i+')">👁️ Xem</button>'+
       (typeof p.lat==='number'?'<button class="btn-small" onclick="impNav('+i+')">🧭 Chỉ đường</button>':'')+'</div>';
   } else if(it.state==='none'){
-    h+='<div class="imp-m">Chưa có trong danh sách cửa hàng.</div>';
+    h+='<div class="imp-m">'+esc(it.note||'Chưa có trong danh sách cửa hàng.')+'</div>';
+    if(it.nearest)h+='<div class="hint">Cửa hàng gần nhất trong danh sách: '+esc(it.nearest.name)+' (cách ~'+fmtDist(it.nearest.dRef)+')</div>';
     if(isAdmin())h+='<div class="imp-btns"><button class="btn-small btn-green" onclick="impAdd('+i+')">➕ Thêm cửa hàng</button></div>';
   } else {
-    h+='<div class="imp-m error">Lỗi tìm kiếm.</div>';
+    h+='<div class="imp-m error">Lỗi khi tìm dòng này, hãy thử lại.</div>';
   }
   return h+'</div>';
 }
 function impRender(){$('impList').innerHTML=impItems.map(impRowHtml).join('');}
 function impRenderRow(i){var el=$('imp-'+i);if(el&&impItems[i])el.outerHTML=impRowHtml(impItems[i],i);}
-function impView(i){
+function impView(i){   // đưa kết quả của dòng này lên danh sách chính (có bản đồ, chỉ đường)
   var it=impItems[i];if(!it||!it.matches.length)return;
   resetUI();lastQuery=it.type==='name'?it.input:'';lastSid='';lastQ=it.input;
   $('status').textContent='Kết quả cho: '+(it.label||it.input);
@@ -1708,11 +1547,11 @@ function impAdd(i){
   if(it.lat!=null&&it.lng!=null)setCoord(it.lat,it.lng);
 }
 function impCopy(){
-  var st={ok:'Khớp',near:'Gần giống',none:'Không có',err:'Lỗi',wait:''};
-  var rows=['Tab\tĐầu vào\tTrạng thái\tTên khớp\tĐịa chỉ\tToạ độ\tCách (m)'];
+  var st={ok:'Khớp chắc',near:'Cần kiểm tra',none:'Không có',err:'Lỗi',wait:''};
+  var rows=['Tab\tĐầu vào\tThông tin trong file\tTrạng thái\tTên khớp\tĐịa chỉ trong sheet\tToạ độ\tCách bạn (m)'];
   impItems.forEach(function(it){
     var p=it.matches[0]||{};
-    rows.push([it.sheet,it.input,st[it.state]||'',p.name||'',p.address||'',(typeof p.lat==='number'?p.lat+' '+p.lng:''),(p.dUser!=null?Math.round(p.dUser):'')].map(function(v){return String(v==null?'':v).replace(/[\t\r\n]+/g,' ');}).join('\t'));
+    rows.push([it.sheet,it.input,it.info,st[it.state]||'',p.name||'',p.address||'',(typeof p.lat==='number'?p.lat+' '+p.lng:''),(p.dUser!=null?Math.round(p.dUser):'')].map(function(v){return String(v==null?'':v).replace(/[\t\r\n]+/g,' ');}).join('\t'));
   });
   copyText(rows.join('\n'),$('impCopyBtn'));
 }
@@ -1723,19 +1562,77 @@ function toggleAdmin(){
   var sec=$('adminSection');
   var show=sec.classList.contains('hidden');
   sec.classList.toggle('hidden',!show);
-  if(show){$('codeBox').innerHTML='';$('adminStatus').innerHTML='';loadRequests();loadUsers();loadPending();sec.scrollIntoView({behavior:'smooth'});}
+  if(show){$('codeBox').innerHTML='';$('adminStatus').innerHTML='';loadRequests();loadUsers();sec.scrollIntoView({behavior:'smooth'});} else {admCamStop();}
+}
+
+// ---------- ADMIN: CHỤP ẢNH NGAY TRÊN MÁY NÀY ----------
+var admCamStream=null, admCamShotData=null;
+function admCamStart(){
+  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){$('admCamMsg').innerHTML='<span class="error">Máy/trình duyệt này không hỗ trợ mở camera kiểu này. Hãy dùng "Thêm cửa hàng mới" để chụp bằng camera máy (cách đó luôn hoạt động).</span>';return;}
+  $('admCamMsg').textContent='Đang mở camera...';
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false}).then(function(stream){
+    admCamStream=stream;
+    var v=$('admCamVideo');v.srcObject=stream;v.classList.remove('hidden');
+    $('admCamStartBtn').classList.add('hidden');$('admCamShotBtn').classList.remove('hidden');$('admCamStopBtn').classList.remove('hidden');
+    $('admCamShotImg').classList.add('hidden');$('admCamActions').classList.add('hidden');admCamShotData=null;
+    $('admCamMsg').textContent='';
+  }).catch(function(err){
+    $('admCamMsg').innerHTML='<span class="error">Không mở được camera (bị từ chối quyền, hoặc máy không hỗ trợ). Hãy dùng "Thêm cửa hàng mới" để chụp bằng camera máy.</span>';
+  });
+}
+function admCamStop(){
+  if(admCamStream){admCamStream.getTracks().forEach(function(t){t.stop();});admCamStream=null;}
+  var v=$('admCamVideo');v.srcObject=null;v.classList.add('hidden');
+  $('admCamStartBtn').classList.remove('hidden');$('admCamShotBtn').classList.add('hidden');$('admCamStopBtn').classList.add('hidden');
+}
+function admCamShot(){
+  var v=$('admCamVideo');if(!v.videoWidth)return;
+  var c=$('admCamCanvas');c.width=v.videoWidth;c.height=v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+  admCamShotData=c.toDataURL('image/jpeg',0.85);
+  $('admCamShotImg').src=admCamShotData;$('admCamShotImg').classList.remove('hidden');
+  $('admCamActions').classList.remove('hidden');
+  admCamStop();
+}
+function admCamDownload(){
+  if(!admCamShotData)return;
+  var a=document.createElement('a');a.href=admCamShotData;a.download='cua-hang-'+Date.now()+'.jpg';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+function admCamUse(){
+  if(!admCamShotData)return;
+  photoData=admCamShotData.split(',')[1];
+  openForm(false);
+  $('photoPreview').src=admCamShotData;$('photoPreview').classList.remove('hidden');
+  $('addSection').scrollIntoView({behavior:'smooth'});
+}
+
+// ---------- ADMIN: TRA ẢNH CỬA HÀNG ĐÃ GỬI ----------
+function admPhotoLookup(){
+  var q=$('admPhotoQuery').value.trim();
+  if(!q){$('admPhotoResult').innerHTML='<span class="error">Nhập tên cửa hàng trước.</span>';return;}
+  $('admPhotoResult').textContent='Đang tìm...';
+  api('search',Object.assign({query:q},uparams())).then(function(res){
+    if(!res.success||!res.results||!res.results.length){$('admPhotoResult').innerHTML='Không tìm thấy cửa hàng nào khớp "'+esc(q)+'".';return;}
+    var h='';
+    res.results.slice(0,20).forEach(function(p){
+      h+='<div class="photo-row"><div><b>'+esc(p.name)+'</b><div class="hint" style="margin:0">'+esc(p.address||'')+'</div></div>'+
+        (p.photo?'<a class="btn-small" href="'+esc(p.photo)+'" target="_blank" rel="noopener">🖼️ Xem ảnh</a>':'<span class="hint">Chưa có ảnh</span>')+'</div>';
+    });
+    $('admPhotoResult').innerHTML=h;
+  });
 }
 function loadRequests(){
   var box=$('reqList');box.textContent='Đang tải...';
   api('listRequests').then(function(res){
     box.innerHTML='';
     if(!res.success){box.innerHTML='<span class="error">'+esc(res.message)+'</span>';return;}
-    if(!res.requests.length){box.textContent='Không có yêu cầu chờ.';return;}
+    if(!res.requests.length){box.textContent='Không có yêu cầu nào đang chờ.';return;}
     res.requests.forEach(function(r){
       var d=document.createElement('div');d.className='req-row';
       var info=document.createElement('div');
       var nm=document.createElement('b');nm.textContent=r.email;
-      var st=document.createElement('div');st.className='hint';st.textContent=r.kind+' • '+r.time;
+      var st=document.createElement('div');st.className='hint';st.textContent=r.kind+' • '+r.time+(r.device?' • '+r.device:'');
       info.appendChild(nm);info.appendChild(st);
       var b=document.createElement('button');b.className='btn-small btn-green';b.textContent='Cấp mã';
       b.onclick=function(){issueFor(r.email,r.kind!=='Xin cấp mã mới');};
@@ -1754,96 +1651,102 @@ function loadUsers(){
       var info=document.createElement('div');
       var nm=document.createElement('b');nm.textContent=u.email;
       var st=document.createElement('div');st.className='hint';
-      st.textContent=(u.status==='active'?(u.pwSet?'Đang hoạt động':'Chờ đăng nhập'):'Đã thu hồi')+' • Hạn: '+(u.expires?fmtDate(u.expires):'Không giới hạn');
+      var exTxt=u.exState==='wipe'?' • ⛔ ĐÃ ĐẾN NGÀY XOÁ APP':(u.exState==='expired'?' • ⛔ ĐÃ HẾT HẠN':'');
+      st.textContent=(u.status==='active'?(u.pwSet?'Đang hoạt động':'Chờ đăng nhập lần đầu / đặt mật khẩu'):'Đã thu hồi')+' • cấp '+u.issued+' bởi '+u.by+
+        ' • Hạn: '+(u.expires?fmtDate(u.expires):'không giới hạn')+(u.wipeAt?' • Xoá app: '+fmtDate(u.wipeAt):'')+exTxt;
       info.appendChild(nm);info.appendChild(st);
       var btns=document.createElement('div');btns.className='row';
-      var b1=document.createElement('button');b1.className='btn-small';b1.textContent='Cấp lại';
+      var b1=document.createElement('button');b1.className='btn-small';b1.textContent='Cấp lại mã';
       b1.onclick=function(){issueFor(u.email,true);};
       btns.appendChild(b1);
+      var bx=document.createElement('button');bx.className='btn-small';bx.textContent='📅 Đặt hạn';
+      var panel=document.createElement('div');panel.className='hidden';panel.style.cssText='width:100%;margin-top:8px';
+      panel.innerHTML='<div class="row"><div style="flex:1"><label style="margin-top:0">Hạn sử dụng</label><input type="date" class="dEx"></div><div style="flex:1"><label style="margin-top:0">Ngày xoá app</label><input type="date" class="dWipe"></div></div>'+
+        '<div class="hint">Để trống = không giới hạn.</div><button class="btn-small btn-green dSave" style="margin-top:6px">💾 Lưu hạn</button>';
+      panel.querySelector('.dEx').value=u.expires||'';panel.querySelector('.dWipe').value=u.wipeAt||'';
+      bx.onclick=function(){panel.classList.toggle('hidden');};
+      panel.querySelector('.dSave').onclick=function(){
+        adminMsg('Đang lưu hạn...');
+        api('setExpiry',{target:u.email,expires:panel.querySelector('.dEx').value||'',wipeAt:panel.querySelector('.dWipe').value||''},true).then(function(res){
+          if(!res.success){adminMsg(res.message,'error');return;}
+          adminMsg(res.message,'ok');loadUsers();
+        });
+      };
+      btns.appendChild(bx);
       if(u.status==='active'){
         var b2=document.createElement('button');b2.className='btn-small btn-red';b2.textContent='Thu hồi';
         b2.onclick=function(){revokeUser(u.email);};
         btns.appendChild(b2);
       }
-      d.appendChild(info);d.appendChild(btns);box.appendChild(d);
+      d.appendChild(info);d.appendChild(btns);d.appendChild(panel);box.appendChild(d);
     });
-  });
-}
-function loadPending(){
-  var box=$('pendingList');box.textContent='Đang tải...';
-  api('listPending').then(function(res){
-    box.innerHTML='';
-    if(!res.success){box.innerHTML='<span class="error">'+esc(res.message)+'</span>';return;}
-    if(!res.items.length){box.textContent='Không có đề xuất nào đang chờ.';return;}
-    res.items.forEach(function(it){
-      var d=document.createElement('div');d.className='card';d.style.marginBottom='10px';
-      var photoHtml=it.photo?('<div style="margin-top:6px"><a href="'+esc(it.photo)+'" target="_blank" rel="noopener">🖼️ Xem ảnh</a></div>'):'';
-      d.innerHTML='<div class="result-name">'+esc(it.name)+'</div>'+
-        '<div class="result-address">'+esc(it.address||'')+'</div>'+
-        '<div class="hint">📍 '+esc(it.coord)+' • Gửi bởi '+esc(it.sender)+' lúc '+esc(it.time)+'</div>'+photoHtml;
-      var btns=document.createElement('div');btns.className='row';btns.style.marginTop='8px';
-      var ok=document.createElement('button');ok.className='btn-small btn-green';ok.textContent='✅ Duyệt';
-      ok.onclick=function(){approveP(it.row);};
-      var no=document.createElement('button');no.className='btn-small btn-red';no.textContent='❌ Từ chối';
-      no.onclick=function(){rejectP(it.row);};
-      btns.appendChild(ok);btns.appendChild(no);
-      d.appendChild(btns);
-      box.appendChild(d);
-    });
-  });
-}
-function approveP(row){
-  if(!confirm('Duyệt và thêm cửa hàng này vào danh sách chính?'))return;
-  adminMsg('Đang duyệt...');
-  api('approvePending',{row:row},true).then(function(res){
-    adminMsg(res.message,res.success?'ok':'error');
-    loadPending();
-  });
-}
-function rejectP(row){
-  var reason=prompt('Lý do từ chối (có thể để trống):','')||'';
-  adminMsg('Đang từ chối...');
-  api('rejectPending',{row:row,reason:reason},true).then(function(res){
-    adminMsg(res.message,res.success?'ok':'error');
-    loadPending();
   });
 }
 function issueFor(email,reissue,withDates){
   email=String(email||'').trim().toLowerCase();
-  if(!email){adminMsg('Nhập email.','error');return;}
-  if(reissue&&!confirm('Cấp mã mới cho '+email+'?'))return;
+  if(!email){adminMsg('Nhập email nhân viên.','error');return;}
+  if(reissue&&!confirm('Cấp mã mới cho '+email+'? Mã cũ sẽ không dùng được nữa.'))return;
   adminMsg('Đang cấp mã...');$('codeBox').innerHTML='';
   var prm={target:email};
-  if(withDates){prm.expires=$('newUserExpires').value||'';prm.wipeAt=$('newUserWipe').value||'';}
+  if(withDates){prm.expires=$('newUserExpires').value||'';prm.wipeAt=$('newUserWipe').value||'';}   // cấp lại mã: không gửi ngày -> giữ nguyên hạn cũ
   api('issueCode',prm,true).then(function(res){
     if(!res.success){adminMsg(res.message,'error');return;}
     adminMsg('');
     var box=$('codeBox');
-    box.innerHTML='<div class="code-box"><div>Mã truy cập của <b>'+esc(res.email)+'</b>:</div>'+
-      '<div class="code-big">'+esc(res.code)+'</div><button class="btn-small" id="copyCodeBtn">📋 Copy</button></div>';
+    box.innerHTML='<div class="code-box"><div>Mã truy cập của <b>'+esc(res.email)+'</b> (chỉ hiện một lần):</div>'+
+      '<div class="code-big">'+esc(res.code)+'</div><button class="btn-small" id="copyCodeBtn">📋 Copy mã</button></div>';
     $('copyCodeBtn').onclick=function(){copyText(res.code,$('copyCodeBtn'));};
-    $('newUserEmail').value='';loadRequests();loadUsers();
+    $('newUserEmail').value='';$('newUserExpires').value='';$('newUserWipe').value='';
+    loadRequests();loadUsers();
   });
 }
-
-
-
-
-
-
-
-
-
-
-
 function revokeUser(email){
-  if(!confirm('Thu hồi quyền của '+email+'?'))return;
+  if(!confirm('Thu hồi quyền của '+email+'? Họ sẽ bị đăng xuất khỏi app.'))return;
   adminMsg('Đang thu hồi...');
   api('revoke',{target:email},true).then(function(res){
     if(!res.success){adminMsg(res.message,'error');return;}
     adminMsg(res.message,'ok');$('codeBox').innerHTML='';loadUsers();
   });
 }
+</script>
+<script>
+// ---------- CẬP NHẬT TỪ XA (Capgo Updater, tự lưu trữ trên GitHub Pages) ----------
+(function(){
+  var BASE='__UPDATE_BASE__',BUILD='__BUILD_VER__';   // workflow tự thay lúc build
+  if(BASE.indexOf('__')===0)return;                    // chạy local/chưa build: bỏ qua
+  var C=window.Capacitor;
+  if(!(C&&C.isNativePlatform&&C.isNativePlatform()&&C.registerPlugin))return;   // chỉ chạy trong app Android
+  var U;try{U=C.registerPlugin('CapacitorUpdater');}catch(e){return;}
+  try{U.notifyAppReady();}catch(e){}                   // bắt buộc, báo bản hiện tại chạy ổn (không thì plugin tự quay về bản cũ)
+  var busy=false,lastCheck=0;
+  function banner(b){
+    if(document.getElementById('updBar'))return;
+    var d=document.createElement('div');d.id='updBar';
+    d.style.cssText='position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:9999;background:#1b7a35;color:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.25)';
+    d.innerHTML='<span>Đã tải bản mới</span>';
+    var btn=document.createElement('button');btn.textContent='Cập nhật ngay';
+    btn.style.cssText='background:#fff;color:#1b7a35;padding:8px 12px;font-size:12px;border-radius:12px';
+    btn.onclick=function(){btn.disabled=true;btn.textContent='Đang cập nhật...';U.set({id:b.id}).catch(function(){btn.disabled=false;btn.textContent='Thử lại';});};
+    d.appendChild(btn);document.body.appendChild(d);
+  }
+  function check(){
+    if(busy||Date.now()-lastCheck<60000)return;
+    busy=true;lastCheck=Date.now();
+    fetch(BASE+'/version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.json();}).then(function(v){
+      if(!v||!v.version||!v.file)throw 0;
+      return U.current().then(function(cur){
+        var cv=(cur&&cur.bundle&&cur.bundle.version)||'builtin';
+        var have=(cv==='builtin')?BUILD:cv;
+        if(v.version===have)return;
+        return U.download({url:BASE+'/'+v.file,version:v.version}).then(function(b){
+          return U.next({id:b.id}).then(function(){banner(b);});   // tự áp dụng ở lần mở app kế tiếp, hoặc bấm "Cập nhật ngay"
+        });
+      });
+    }).catch(function(){}).then(function(){busy=false;});
+  }
+  check();
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)check();});
+})();
 </script>
 </body>
 </html>
