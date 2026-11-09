@@ -3,6 +3,7 @@ package com.cuahang.tim;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.provider.Settings;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -52,6 +53,20 @@ public class LocationEnablerPlugin extends Plugin {
                             reply(call, false);
                         }
                     });
+        } catch (Exception ex) {
+            reply(call, false);
+        }
+    }
+
+    // Mở thẳng màn hình Cài đặt > Vị trí của Android, dùng khi hộp thoại tự động
+    // (checkLocationSettings) không bật lên được hoặc người dùng cần tự bật tay.
+    @PluginMethod
+    public void openSettings(final PluginCall call) {
+        try {
+            Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getActivity().startActivity(intent);
+            reply(call, true);
         } catch (Exception ex) {
             reply(call, false);
         }
