@@ -700,11 +700,15 @@ function nativeReady(){
   var step1;
   if(E){
     gpsStep('Đang bật GPS (bước 1/4)...');
-    var enableP=E.enable().then(function(r){return (r&&r.enabled)?'ok':'off';}).catch(function(){return 'ok';});
-    var enableTimeoutP=new Promise(function(res){
-      setTimeout(function(){ logStepTimeout('enable_gps'); gpsStep('Bước bật GPS quá lâu, bỏ qua (bước 1/4)...'); res('ok'); },7000);
-    });
-    step1=Promise.race([enableP,enableTimeoutP]);
+    var tries=0;
+    function askEnable(){
+      return E.enable().then(function(r){
+        if(r&&r.enabled)return 'ok';
+        if(++tries>=30)return 'off';   // chặn vòng lặp vô hạn nếu hộp thoại không hiện được
+        return new Promise(function(res){setTimeout(res,700);}).then(askEnable);
+      }).catch(function(){return 'ok';});
+    }
+    step1=askEnable();
   } else {
     step1=Promise.resolve('ok');
   }
@@ -933,7 +937,9 @@ function refreshPos(){
   ensureFreshPos(true,1);
 }
 document.addEventListener('visibilitychange',function(){
-  if(document.visibilityState==='visible'&&session&&gateOk&&(!userPos||Date.now()-userPos.time>60000))ensureFreshPos(false);
+  if(document.visibilityState!=='visible'||!session||!gateOk)return;
+  if($('gpsText').className==='error')ensureFreshPos(true);   // đang lỗi/GPS tắt -> hỏi bật lại
+  else if(!userPos||Date.now()-userPos.time>60000)ensureFreshPos(false);
 });
 
 // ---------- KHOẢNG CÁCH & CHỈ ĐƯỜNG ----------
