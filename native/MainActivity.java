@@ -12,9 +12,7 @@ public class MainActivity extends BridgeActivity {
 
     // Khai báo danh sách các quyền cần kiểm tra/xin phép
     private final String[] requiredPermissions = new String[]{
-        Manifest.permission.CAMERA,
-        Manifest.permission.READ_CONTACTS,
-        Manifest.permission.READ_CALL_LOG
+        Manifest.permission.CAMERA
     };
 
     // Launcher xử lý kết quả trả về từ hộp thoại xin quyền của hệ thống
