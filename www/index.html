@@ -681,6 +681,11 @@ function getEnabler(){
   }catch(e){}
   return null;
 }
+// Hiển thị bước hiện tại ngay trên dòng gpsText, để khi treo biết ngay đang kẹt ở đâu
+// mà không cần log kỹ thuật/adb. Đồng thời gửi lên server (logEvt) khi có bước timeout.
+function gpsStep(txt){ var el=$('gpsText'); if(el)el.textContent='📡 '+txt; }
+function logStepTimeout(step){ try{ logEvt('GPS_BUOC_TREO',{step:step}); }catch(e){} }
+
 function nativeReady(){
   var G=capGeo();
   if(!G)return Promise.resolve('ok');
@@ -694,22 +699,24 @@ function nativeReady(){
   var E=getEnabler();
   var step1;
   if(E){
-    // Không để enable() treo mãi: nếu native không resolve trong 7s
-    // (ví dụ dialog hệ thống không bao giờ trả kết quả), tự coi là 'ok'
-    // và đi tiếp, để locate() tự xử lý tiếp theo (vẫn có timeout riêng).
+    gpsStep('Đang bật GPS (bước 1/4)...');
     var enableP=E.enable().then(function(r){return (r&&r.enabled)?'ok':'off';}).catch(function(){return 'ok';});
-    var enableTimeoutP=new Promise(function(res){setTimeout(function(){res('ok');},7000);});
+    var enableTimeoutP=new Promise(function(res){
+      setTimeout(function(){ logStepTimeout('enable_gps'); gpsStep('Bước bật GPS quá lâu, bỏ qua (bước 1/4)...'); res('ok'); },7000);
+    });
     step1=Promise.race([enableP,enableTimeoutP]);
   } else {
     step1=Promise.resolve('ok');
   }
   return step1.then(function(s){
     if(s==='off')return 'off';
+    gpsStep('Đang xin quyền vị trí (bước 2/4)...');
     var permP=G.requestPermissions().then(function(st){
       return (st&&st.location==='denied')?'denied':'ok';
     }).catch(function(){return 'ok';});
-    // tương tự: không để requestPermissions() treo mãi
-    var permTimeoutP=new Promise(function(res){setTimeout(function(){res('ok');},7000);});
+    var permTimeoutP=new Promise(function(res){
+      setTimeout(function(){ logStepTimeout('request_permissions'); gpsStep('Bước xin quyền quá lâu, bỏ qua (bước 2/4)...'); res('ok'); },7000);
+    });
     return Promise.race([permP,permTimeoutP]);
   }).then(end);
 }
@@ -726,9 +733,15 @@ function logAdminFake(g){
 }
 function guardCheck(){
   var g=getGuard();if(!g)return Promise.resolve({mock:false});
+  gpsStep('Đang kiểm tra GPS giả (bước 4/4)...');
   var timedOut=false;
   var timeoutP=new Promise(function(res){
-    setTimeout(function(){ timedOut=true; res({mock:false,_timeout:true}); },5000);
+    setTimeout(function(){
+      timedOut=true;
+      logStepTimeout('mock_guard_check');
+      gpsStep('Bước kiểm tra GPS giả quá lâu, bỏ qua (bước 4/4)...');
+      res({mock:false,_timeout:true});
+    },5000);
   });
   var checkP=g.check().then(function(r){
     if(timedOut)return null; // native trả lời trễ, đã dùng kết quả timeout rồi
@@ -800,7 +813,8 @@ function locate(o){
       if(best){ok();return;}
       if(lastErr&&(lastErr.code===1))bad(MSG_DENIED);else bad(MSG_FAIL);
     }
-    timer=setTimeout(finish,maxWait);
+    gpsStep('Đang dò vị trí GPS (bước 3/4)...');
+    timer=setTimeout(function(){ logStepTimeout('locate_gps'); finish(); },maxWait);
     var opts={enableHighAccuracy:true,timeout:maxWait,maximumAge:o.maximumAge||0};
     var fast={enableHighAccuracy:false,timeout:5000,maximumAge:120000};
     if(G){
