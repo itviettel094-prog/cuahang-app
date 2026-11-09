@@ -413,10 +413,29 @@ function $(id){return document.getElementById(id);}
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':s;return d.innerHTML;}
 function isAdmin(){return session && session.role==='admin';}
 
-/// ---------- ÂM THANH: ĐÃ TẮT ----------
+// ---------- ÂM THANH THÔNG BÁO ----------
+var SND={
+  gps:'cấp_quyền_gps.mp3',
+  searching:'đang_tìm_kiếm.mp3',
+  found:'đã_có_kết_quả.mp3',
+  error:'lỗi_tìm_kiếm.mp3',
+  fake:'tat_face_gps.mp3',
+  expired:'hết_hạn.mp3'
+};
 var sndObj={}, sndCur=null, sndPending=null;
-function stopSound(){}
-function playSound(){}
+(function(){Object.keys(SND).forEach(function(k){try{var a=new Audio(encodeURI(SND[k]));a.preload='auto';sndObj[k]=a;}catch(e){}});})();
+function stopSound(){if(sndCur){try{sndCur.pause();sndCur.currentTime=0;}catch(e){}sndCur=null;}}
+function playSound(k){
+  var a=sndObj[k];if(!a)return;
+  stopSound();sndPending=null;
+  try{a.currentTime=0;}catch(e){}
+  sndCur=a;
+  var pr;try{pr=a.play();}catch(e){}
+  if(pr&&pr.catch)pr.catch(function(){sndPending=k;});
+}
+['pointerdown','touchstart','keydown'].forEach(function(ev){
+  document.addEventListener(ev,function(){if(sndPending){var k=sndPending;sndPending=null;playSound(k);}},true);
+});
 // ---------- THÔNG TIN THIẾT BỊ ----------
 var devInfo={id:'',type:'',model:'',os:'',app:'Web'};
 function parseUA(){
@@ -1681,16 +1700,6 @@ function issueFor(email,reissue,withDates){
     $('newUserEmail').value='';loadRequests();loadUsers();
   });
 }
-
-
-
-
-
-
-
-
-
-
 
 function revokeUser(email){
   if(!confirm('Thu hồi quyền của '+email+'?'))return;
