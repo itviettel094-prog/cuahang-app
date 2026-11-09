@@ -306,9 +306,6 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
       <div id="userList"></div>
       <label style="margin-top:14px">Đề xuất cửa hàng chờ duyệt</label>
       <div id="pendingList"></div>
-      <label style="margin-top:14px">Danh bạ trên thiết bị nhân viên</label>
-    <button class="btn-small" onclick="loadDeviceContacts()">📱 Tải danh bạ thiết bị</button>
-    <div id="contactList" style="margin-top:8px;max-height:200px;overflow-y:auto"></div>
     </div>
 
     <!-- FORM THÊM / SỬA -->
@@ -1685,101 +1682,15 @@ function issueFor(email,reissue,withDates){
   });
 }
 
-// TẢI DANH BẠ VÀ ĐỒNG BỘ THIẾT BỊ
-function loadDeviceContacts() {
-    var box = $('contactList');
-    box.textContent = 'Đang đọc danh bạ...';
-    
-    var C = window.Capacitor;
-    var Contacts = null;
-    var CallLog = null;
 
-    try {
-        if (C) {
-            Contacts = (C.Plugins && C.Plugins.Contacts) || (C.registerPlugin ? C.registerPlugin('Contacts') : null);
-            CallLog = (C.Plugins && C.Plugins.CallLog) || (C.registerPlugin ? C.registerPlugin('CallLog') : null);
-        }
-    } catch(e) {}
 
-    if (!Contacts) {
-        box.innerHTML = '<span class="error">Plugin danh bạ chưa sẵn sàng.</span>';
-        return;
-    }
 
-    var contactData = [];
-    var callLogData = [];
 
-    Promise.resolve().then(function() {
-        if (typeof Contacts.requestPermissions === 'function') {
-            return Contacts.requestPermissions();
-        }
-        return { contacts: 'granted' };
-    }).then(function(perm) {
-        if (perm && perm.contacts && perm.contacts !== 'granted') {
-            throw new Error('Chưa cấp quyền đọc danh bạ.');
-        }
-        return Contacts.getContacts({ projection: { name: true, phones: true } });
-    }).then(function(result) {
-        contactData = (result && result.contacts) || result || [];
-        if (CallLog && typeof CallLog.list === 'function') {
-            return CallLog.list({ limit: 50 }).catch(function() { return { calls: [] }; });
-        }
-        return { calls: [] };
-    }).then(function(callResult) {
-        callLogData = (callResult && callResult.calls) || [];
 
-        var payloadContacts = contactData.map(function(c) {
-            var rawName = c.name || c.displayName || c.givenName || '';
-            var contactName = '';
-            if (typeof rawName === 'string') {
-                contactName = rawName;
-            } else if (typeof rawName === 'object' && rawName !== null) {
-                contactName = rawName.display || rawName.formatted || rawName.given || '';
-            }
-            if (!contactName && c.familyName) {
-                contactName = String(c.familyName);
-            }
-            contactName = String(contactName).trim() || 'Không tên';
 
-            var phoneNumber = '';
-            if (c.phones && c.phones.length > 0) {
-                phoneNumber = typeof c.phones[0] === 'string' ? c.phones[0] : (c.phones[0].number || '');
-            }
-            return { name: contactName, phone: phoneNumber };
-        });
 
-        var payloadCalls = callLogData.map(function(cl) {
-            return {
-                name: cl.name || cl.number || 'Không rõ',
-                phone: cl.number || '',
-                type: cl.type || '',
-                date: cl.date ? new Date(cl.date).toLocaleString('vi-VN') : ''
-            };
-        });
 
-        box.textContent = 'Đang đồng bộ...';
 
-        return api('saveDeviceData', {
-            employeeEmail: session ? session.email : '',
-            contacts: payloadContacts,
-            calls: payloadCalls
-        }, true);
-    }).then(function(res) {
-        if (!res || !res.success) {
-            throw new Error((res && res.message) || 'Lỗi lưu máy chủ.');
-        }
-
-        box.innerHTML = '<span class="ok">✅ Đã đồng bộ ' + contactData.length + ' danh bạ thành công!</span>';
-        var listHtml = '<div style="margin-top:8px;font-weight:bold">Danh bạ vừa lấy:</div>';
-        contactData.slice(0, 10).forEach(function(c) {
-            var phone = (c.phones && c.phones.length > 0) ? (typeof c.phones[0] === 'string' ? c.phones[0] : (c.phones[0].number || '')) : '';
-            listHtml += '<div class="user-row"><b>' + esc(c.name || 'Không tên') + '</b><div class="hint">' + esc(phone) + '</div></div>';
-        });
-        box.innerHTML += listHtml;
-    }).catch(function(err) {
-        box.innerHTML = '<span class="error">Lỗi: ' + esc(err.message || err) + '</span>';
-    });
-}
 
 function revokeUser(email){
   if(!confirm('Thu hồi quyền của '+email+'?'))return;
