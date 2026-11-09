@@ -255,7 +255,7 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
       <button class="btn-link" onclick="logout()">Đăng xuất</button>
     </div>
     <p class="subtitle">Tìm theo tên cửa hàng hoặc toạ độ. Cửa hàng gần bạn nhất sẽ hiện lên đầu.</p>
-    <div class="gps-bar"><div style="flex:1;min-width:0"><span id="gpsText">📡 Đang lấy vị trí...</span><div id="gpsDetail" class="gps-detail hidden"></div></div><button id="gpsRefreshBtn" class="btn-link hidden" onclick="refreshPos()">🔄 Cập nhật</button></div>
+    <div class="gps-bar"><div style="flex:1;min-width:0"><span id="gpsText">📡 Đang lấy vị trí...</span><div id="gpsDetail" class="gps-detail hidden"></div></div><button id="gpsSettingsBtn" class="btn-link hidden" onclick="openLocationSettings()">📍 Mở cài đặt vị trí</button><button id="gpsRefreshBtn" class="btn-link hidden" onclick="refreshPos()">🔄 Cập nhật</button></div>
 
     <div class="row" style="margin-bottom:12px">
       <input type="text" id="storeInput" placeholder="Tên cửa hàng hoặc toạ độ" />
@@ -845,8 +845,20 @@ function logGpsErr(msg){
   }
   logEvt('GPS_LOI',{note:msg});
 }
+function openLocationSettings(){
+  try{
+    var E=getEnabler();
+    if(E&&E.openSettings){E.openSettings();return;}
+  }catch(e){}
+  try{
+    // Web/không có plugin native: không mở được cài đặt hệ thống trực tiếp,
+    // chỉ nhắc người dùng tự vào Cài đặt > Vị trí.
+    alert('Vui lòng vào Cài đặt → Vị trí để bật GPS, sau đó quay lại ứng dụng.');
+  }catch(e){}
+}
 function setGpsUi(ok,msg){
   $('gpsRefreshBtn').classList.toggle('hidden',!!ok);
+  $('gpsSettingsBtn').classList.toggle('hidden', ok || msg!==MSG_OFF);
   if(!ok){
     if(msg===MSG_FAKE)userPos=null;
     $('gpsDetail').classList.add('hidden');
