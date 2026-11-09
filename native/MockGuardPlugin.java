@@ -1,6 +1,8 @@
 package com.cuahang.tim;
 
 import android.annotation.SuppressLint;
+import android.app.AppOpsManager;
+import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -9,6 +11,8 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+
+import java.io.File;
 
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -38,7 +42,10 @@ public class MockGuardPlugin extends Plugin {
 
     @SuppressLint("QueryPermissionsNeeded")
     @SuppressWarnings("deprecation")
-    private JSArray mockApps() {
+    private JSArray legacyMockPermApps() {
+        // Giữ lại để tham khảo/ghi log, nhưng từ Android 6.0 (API 23) app KHÔNG CẦN khai
+        // permission ACCESS_MOCK_LOCATION nữa để được chọn làm "mock location app" trong
+        // Developer Options, nên danh sách này gần như luôn rỗng với app giả GPS hiện đại.
         JSArray arr = new JSArray();
         try {
             PackageManager pm = getContext().getPackageManager();
@@ -56,24 +63,81 @@ public class MockGuardPlugin extends Plugin {
         return arr;
     }
 
+    @SuppressLint("QueryPermissionsNeeded")
+    @SuppressWarnings("deprecation")
+    private JSArray mockAppsViaAppOps() {
+        // Cách đúng cho Android 6.0+: dò qua AppOpsManager xem app nào đang được hệ thống
+        // cấp OP_MOCK_LOCATION (tức app đang được chọn làm "mock location app" trong
+        // Developer Options), bất kể app đó có khai permission cũ hay không.
+        JSArray arr = new JSArray();
+        try {
+            AppOpsManager aom = (AppOpsManager) getContext().getSystemService(Context.APP_OPS_SERVICE);
+            PackageManager pm = getContext().getPackageManager();
+            if (aom == null) return arr;
+            for (PackageInfo pi : pm.getInstalledPackages(0)) {
+                if (pi.applicationInfo == null || (pi.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0) continue;
+                try {
+                    int mode = aom.checkOpNoThrow(AppOpsManager.OPSTR_MOCK_LOCATION, pi.applicationInfo.uid, pi.packageName);
+                    if (mode == AppOpsManager.MODE_ALLOWED) {
+                        arr.put(String.valueOf(pm.getApplicationLabel(pi.applicationInfo)) + " (" + pi.packageName + ")");
+                    }
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
+        return arr;
+    }
+
     private boolean devOptionsOn() {
         try {
             return Settings.Global.getInt(getContext().getContentResolver(), Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1;
         } catch (Exception e) { return false; }
     }
 
+    private static final String[] ROOT_PATHS = {
+        "/system/bin/su", "/system/xbin/su", "/sbin/su", "/su/bin/su",
+        "/system/app/Superuser.apk", "/system/app/SuperSU", "/data/local/xbin/su",
+        "/data/local/bin/su", "/system/bin/.ext/.su"
+    };
+    private static final String[] XPOSED_INDICATORS = {
+        "/system/framework/XposedBridge.jar", "/sbin/.magisk", "/data/adb/magisk",
+        "/data/adb/modules"
+    };
+
+    // Chỉ là heuristic tham khảo (KHÔNG tự động kết luận "giả GPS" chỉ vì máy root):
+    // nhiều máy root hợp pháp không hề giả vị trí. Dùng để cộng thêm tín hiệu rủi ro,
+    // không dùng để tự ý chặn người dùng.
+    private boolean rootOrXposedDetected() {
+        try {
+            for (String p : ROOT_PATHS) if (new File(p).exists()) return true;
+            for (String p : XPOSED_INDICATORS) if (new File(p).exists()) return true;
+            String tags = Build.TAGS;
+            if (tags != null && tags.contains("test-keys")) return true;
+        } catch (Exception ignored) {}
+        return false;
+    }
+
     private void reply(PluginCall call, AtomicBoolean done, Location loc) {
         if (!done.compareAndSet(false, true)) return;
+        JSArray appOpsMockApps = mockAppsViaAppOps();
+        boolean osFlaggedMock = loc != null && isMock(loc);
+        // "mock" = cờ chính thức của OS trên chính location vừa lấy được, HOẶC có app đang
+        // được hệ thống cấp quyền mock-location ngay lúc này (bắt được cả trường hợp OS
+        // không gắn cờ lên object Location vì app giả hook thẳng vào provider).
+        boolean mock = osFlaggedMock || appOpsMockApps.length() > 0;
+
         JSObject o = new JSObject();
         o.put("known", loc != null);
-        o.put("mock", loc != null && isMock(loc));
+        o.put("mock", mock);
+        o.put("osFlaggedMock", osFlaggedMock);
         if (loc != null) {
             o.put("lat", loc.getLatitude());
             o.put("lng", loc.getLongitude());
             o.put("acc", loc.getAccuracy());
         }
-        o.put("mockApps", mockApps());
+        o.put("mockApps", appOpsMockApps);
+        o.put("legacyMockPermApps", legacyMockPermApps());
         o.put("devOptions", devOptionsOn());
+        o.put("rootOrXposed", rootOrXposedDetected());
         call.resolve(o);
     }
 
