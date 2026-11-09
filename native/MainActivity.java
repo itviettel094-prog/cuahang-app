@@ -1,75 +1,115 @@
 package com.cuahang.tim;
 
 import android.Manifest;
+import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.IntentSenderRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.content.ContextCompat;
+
 import com.getcapacitor.BridgeActivity;
+import com.google.android.gms.common.api.ResolvableApiException;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsRequest;
+import com.google.android.gms.location.Priority;
 
 public class MainActivity extends BridgeActivity {
 
-    // Khai báo danh sách các quyền cần kiểm tra/xin phép
     private final String[] requiredPermissions = new String[]{
-        Manifest.permission.CAMERA
+        Manifest.permission.CAMERA,
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION
     };
 
-    // Launcher xử lý kết quả trả về từ hộp thoại xin quyền của hệ thống
-    private final ActivityResultLauncher<String[]> permissionLauncher =
-        registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), permissions -> {
-            boolean allGranted = true;
-            for (Boolean granted : permissions.values()) {
-                if (granted != null && !granted) {
-                    allGranted = false;
-                    break;
-                }
-            }
-            if (allGranted) {
-                // Người dùng vừa bấm "Allow" -> Tiến hành chạy tính năng
-                executeAppFeatures();
+    private boolean askingGps = false;
+
+    // Kết quả hộp thoại "Bật vị trí" của Google
+    private final ActivityResultLauncher<IntentSenderRequest> gpsLauncher =
+        registerForActivityResult(new ActivityResultContracts.StartIntentSenderForResult(), result -> {
+            askingGps = false;
+            if (result.getResultCode() == RESULT_OK) {
+                onGpsReady();
             } else {
-                // Người dùng từ chối cấp quyền
-                handlePermissionDenied();
+                // Từ chối -> hỏi lại sau 0.5 giây, cho đến khi đồng ý
+                new Handler(Looper.getMainLooper()).postDelayed(this::ensureGpsOn, 500);
             }
+        });
+
+    // Kết quả xin quyền hệ thống
+    private final ActivityResultLauncher<String[]> permissionLauncher =
+        registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), perms -> {
+            if (hasLocationPermission()) ensureGpsOn();
         });
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        // Đăng ký các plugin hiện tại của app
         registerPlugin(LocationEnablerPlugin.class);
         registerPlugin(MockGuardPlugin.class);
         registerPlugin(AppControlPlugin.class);
-        
         super.onCreate(savedInstanceState);
-
-        // Gọi hàm kiểm tra quyền mỗi khi mở màn hình
         checkAndExecutePermissions();
     }
 
+    // Mỗi lần quay lại app (kể cả khi vừa tắt GPS) đều kiểm tra lại
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (hasLocationPermission()) ensureGpsOn();
+    }
+
+    private boolean hasLocationPermission() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
     private void checkAndExecutePermissions() {
-        boolean hasAllPermissions = true;
-        for (String permission : requiredPermissions) {
-            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
-                hasAllPermissions = false;
+        boolean all = true;
+        for (String p : requiredPermissions) {
+            if (ContextCompat.checkSelfPermission(this, p) != PackageManager.PERMISSION_GRANTED) {
+                all = false;
                 break;
             }
         }
-
-        if (hasAllPermissions) {
-            // ĐÃ ĐỒNG Ý TỪ TRƯỚC: Chạy thẳng luôn, hệ thống KHÔNG hiện lại popup
-            executeAppFeatures();
-        } else {
-            // CHƯA ĐỒNG Ý HOẶC LẦN ĐẦU: Kích hoạt hộp thoại hệ thống xin quyền
-            permissionLauncher.launch(requiredPermissions);
-        }
+        if (all) ensureGpsOn();
+        else permissionLauncher.launch(requiredPermissions);
     }
 
-    private void executeAppFeatures() {
-        // Nơi bạn viết code đọc danh bạ, nhật ký cuộc gọi hoặc mở Camera
+    /** Kiểm tra GPS; nếu tắt thì hiện hộp thoại Google xin bật. */
+    private void ensureGpsOn() {
+        if (askingGps) return;
+        try {
+            LocationRequest req = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000).build();
+            LocationSettingsRequest settings = new LocationSettingsRequest.Builder()
+                    .addLocationRequest(req)
+                    .setAlwaysShow(true)
+                    .build();
+            LocationServices.getSettingsClient(this)
+                .checkLocationSettings(settings)
+                .addOnSuccessListener(r -> onGpsReady())          // GPS đang bật
+                .addOnFailureListener(e -> {                      // GPS đang tắt
+                    if (e instanceof ResolvableApiException) {
+                        try {
+                            askingGps = true;
+                            IntentSender is = ((ResolvableApiException) e).getResolution().getIntentSender();
+                            gpsLauncher.launch(new IntentSenderRequest.Builder(is).build());
+                        } catch (Exception ex) {
+                            askingGps = false;
+                        }
+                    }
+                });
+        } catch (Exception ignored) {}
     }
 
-    private void handlePermissionDenied() {
-        // Xử lý khi người dùng chọn từ chối
+    /** GPS đã bật: báo cho trang web để bắt đầu tìm vị trí. */
+    private void onGpsReady() {
+        try {
+            getBridge().triggerWindowJSEvent("gpsReady", "{}");
+        } catch (Exception ignored) {}
     }
 }
