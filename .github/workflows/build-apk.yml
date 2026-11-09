@@ -22,12 +22,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
-        continue-on-error: true
+        continue-on-error: true   # GitHub lỗi 504 thì dùng Node cài sẵn trên máy
         with:
           node-version: 20
 
       - uses: actions/setup-java@v4
-        continue-on-error: true
+        continue-on-error: true   # GitHub lỗi 504 thì dùng Java 17 cài sẵn trên máy
         with:
           distribution: temurin
           java-version: 17
@@ -40,8 +40,7 @@ jobs:
           java -version
 
       - name: Cài thư viện
-        run: |
-          npm install
+        run: npm install
 
       - name: Cài plugin cập nhật từ xa (Capgo Updater)
         run: |
@@ -63,7 +62,9 @@ jobs:
           echo "Lấy icon từ: $SRC"; ls $SRC
           cp -r $SRC/* $R/
           rm -rf $R/app-icons
+          # Nếu bộ icon không có icon thích ứng (adaptive) thì bỏ bản mặc định, tránh thiếu tài nguyên
           if [ ! -d "$SRC/mipmap-anydpi-v26" ]; then rm -rf $R/mipmap-anydpi-v26; fi
+          # Nếu không có file icon nào thì báo lỗi rõ ràng
           ls $R/mipmap-*/ic_launcher*.png >/dev/null 2>&1 || { echo "KHÔNG THẤY ic_launcher*.png trong $SRC, kiểm tra lại thư mục app-icons"; exit 1; }
           rm -f $R/drawable-v24/ic_launcher_foreground.xml
           rm -f $R/drawable/ic_launcher_background.xml
@@ -77,21 +78,11 @@ jobs:
           sed -i '/^dependencies {/a\    implementation "com.google.android.gms:play-services-location:21.3.0"' android/app/build.gradle
           grep -n "play-services-location" android/app/build.gradle
 
-      - name: Thêm quyền GPS + Camera + Danh bạ + Nhật ký cuộc gọi
+      - name: Thêm quyền GPS + Camera
         run: |
           M=android/app/src/main/AndroidManifest.xml
           sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n    <application|' $M
           grep -n "uses-permission" $M
-
-      - name: Nâng compileSdk lên 35 và minSdk lên 23 (plugin cập nhật yêu cầu)
-        run: |
-          V=android/variables.gradle
-          cat $V
-          sed -i 's/compileSdkVersion = [0-9]*/compileSdkVersion = 35/' $V
-          sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 23/' $V
-          grep -q "android.suppressUnsupportedCompileSdk" android/gradle.properties || echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
-          grep -n "compileSdkVersion\|targetSdkVersion\|minSdkVersion" $V
-          tail -3 android/gradle.properties
 
       - name: Gắn địa chỉ cập nhật vào app
         run: |
@@ -133,15 +124,9 @@ jobs:
           chmod +x gradlew
           for i in 1 2 3; do
             echo "=== Lần build $i ==="
-            ./gradlew assembleDebug --no-daemon 2>&1 | tee /tmp/build.log
-            [ "${PIPESTATUS[0]}" = "0" ] && exit 0
-            if grep -qiE "timed out|timeout|HTTP response code: 5|Connection reset|Could not GET|Could not resolve|Could not download|Read timed out" /tmp/build.log; then
-              echo "Lỗi mạng, chờ 45 giây rồi thử lại..."
-              sleep 45
-            else
-              echo "Lỗi cấu hình/biên dịch (không phải lỗi mạng), dừng ngay. Xem dòng 'What went wrong' ở trên."
-              exit 1
-            fi
+            ./gradlew assembleDebug --no-daemon && exit 0
+            echo "Lỗi, chờ 45 giây rồi thử lại..."
+            sleep 45
           done
           echo "Build thất bại sau 3 lần thử"
           exit 1
@@ -162,7 +147,7 @@ jobs:
   # ===== 2. Đăng bản web lên GitHub Pages (có link https) =====
   web:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    continue-on-error: true   # repo private không có Pages thì bỏ qua, APK vẫn build bình thường
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
