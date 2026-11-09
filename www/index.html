@@ -5,9 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Tìm cửa hàng</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;700;800&display=swap" media="print" onload="this.media='all'">
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+button,input,a,label{touch-action:manipulation}
 body{font-family:'Segoe UI',Roboto,Arial,sans-serif;margin:0;padding:16px;padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(24px + env(safe-area-inset-bottom));background:#f5f6f8;color:#202124}
 .container{max-width:640px;margin:0 auto}
 h2{margin:0 0 4px}h3{margin:0 0 4px}
@@ -59,7 +60,7 @@ label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
 .gps-detail{margin-top:3px;font-size:12px;color:#3c4043;line-height:1.4}.gps-detail b{font-family:Consolas,"Courier New",monospace;font-weight:600}
 .g-head{font-weight:700;font-size:15px;margin:18px 0 4px;color:#1a73e8}.g-card{border-style:dashed}
 .gps-bar{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#5f6368;margin-bottom:10px}
-.center{min-height:calc(100vh - 40px - env(safe-area-inset-top) - env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:center}
+.center{display:flex;align-items:flex-start;justify-content:center;padding:4vh 0 8px}
 .login-card{width:100%;max-width:400px;background:#fff;border:1px solid #e0e0e0;border-radius:16px;padding:26px 22px;box-shadow:0 4px 18px rgba(0,0,0,.07);text-align:center}
 .login-card label{text-align:left}
 .login-card .subtitle{margin-bottom:6px}
@@ -89,8 +90,8 @@ textarea#impText{width:100%;padding:12px 14px;border:1px solid #dadce0;border-ra
 
 /* ===== GIAO DIỆN XANH LÁ, KHỐI BO TRÒN ===== */
 :root{--g1:#1b7a35;--g2:#2e9e4f;--gtxt:#175c2a;--gbg:#f3fbf5;--gbd:#bfe3c9;--gsoft:#e6f6ea;--gmut:#5f7f68}
-body{font-family:'Be Vietnam Pro','Segoe UI',Roboto,Arial,sans-serif;background:linear-gradient(180deg,#e9f6ec 0%,#d3ebd9 100%);background-attachment:fixed;color:var(--gtxt)}
-.container{background:#fff;border-radius:28px;padding:18px 16px 22px;box-shadow:0 10px 30px rgba(27,122,53,.14)}
+body{font-family:'Be Vietnam Pro','Segoe UI',Roboto,Arial,sans-serif;background:#dcefe1;color:var(--gtxt)}
+.container{background:#fff;border-radius:28px;padding:18px 16px 22px;box-shadow:0 2px 8px rgba(27,122,53,.12)}
 h2,h3{color:var(--g1);text-transform:uppercase;letter-spacing:.3px;font-weight:800}
 h3{font-size:15px}
 .app-title{font-size:17px;line-height:1.3}
@@ -152,13 +153,14 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
       <div id="loginStatus" style="margin:10px 0;font-size:14px"></div>
       <div class="row">
         <button id="loginBtn" onclick="doLogin()" style="flex:1">Đăng nhập</button>
-        <button id="reqBtn" class="btn-orange btn-req" onclick="requestCode()" disabled>📨 Gửi yêu cầu cấp mã</button>
+        <button id="reqBtn" class="btn-orange btn-req" onclick="requestCode()" disabled>Đăng ký</button>
       </div>
-      <div class="hint" style="text-align:center;margin-top:10px">Nhập địa chỉ Gmail cá nhân của bạn vào và bấm "Gửi yêu cầu cấp mã" nếu chưa có tài khoản.</div>
+      <div class="hint" style="text-align:center;margin-top:10px">Nhập địa chỉ Gmail cá nhân của bạn vào và bấm "Đăng ký" nếu chưa có tài khoản.</div>
       <div class="about">
         <b>Tìm cửa hàng</b> • Phiên bản <span id="verText">1.0</span><br>
-        Phần mềm nội bộ, chỉ dành cho nhân viên được cấp quyền.<br><br>
-        © 2026 Phần mềm tìm vị trí cửa hàng. Bảo lưu mọi quyền.
+        Phần mềm được phát triển bởi <b>IT Team Trần Thị Dung</b>.<br>
+        Phần mềm nội bộ, chỉ dành cho nhân viên được cấp quyền.<br>
+        © 2026 IT Team Trần Thị Dung. Bảo lưu mọi quyền.
       </div>
     </div>
   </div>
@@ -193,29 +195,20 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
     <div class="login-card" style="max-width: 520px; text-align: left;">
       <h2 style="text-align: center; margin-bottom: 12px;">📜 ĐIỀU KHOẢN VÀ CHÍNH SÁCH SỬ DỤNG</h2>
       <div style="font-size: 12px; color: #5f6368; max-height: 220px; overflow-y: auto; border: 1px solid #dadce0; padding: 10px; border-radius: 8px; margin-bottom: 14px; line-height: 1.5;">
-        
-        
-        <b>1. QUYỀN VÀ TRÁCH NHIỆM CỦA NGƯỜI DÙNG</b><br>
-        - Bạn cam kết sử dụng Ứng dụng hoàn toàn cho các mục đích công việc được giao, tuân thủ nghiêm ngặt các quy định nội bộ của tổ chức.<br>
-        - Nghiêm cấm mọi hành vi sao chép, đảo ngược mã nguồn (reverse engineering), can thiệp trái phép vào hệ thống, cố tình tạo ra dữ liệu định vị giả (GPS giả) hoặc thực hiện bất kỳ hành động nào có thể làm tổn hại đến tính bảo mật và sự ổn định của hệ thống máy chủ.<br>
-        - Tài khoản đăng nhập và mã truy cập được cấp là tài khoản cá nhân. Bạn tuyệt đối không được chia sẻ thông tin tài khoản, mật khẩu hoặc mã xác thực của mình cho bất kỳ bên thứ ba nào khác dưới mọi hình thức.<br><br>
+        <b>1. TRÁCH NHIỆM CỦA NGƯỜI DÙNG</b><br>
+        - Không chia sẻ tài khoản cho bất kỳ ai dưới bất kỳ hình thức nào.<br>
+        - Bạn chỉ cần gửi yêu cầu cấp mã và báo lại cho IT để được cung cấp mật khẩu.<br>
+        - Sau khi đăng nhập thành công, hệ thống sẽ yêu cầu bạn đổi mật khẩu ngay.<br><br>
 
-        <b>3. QUYỀN RIÊNG TƯ VÀ THU THẬP DỮ LIỆU THIẾT BỊ</b><br>
-        - Để phục vụ cho công tác vận hành, báo cáo công việc và tối ưu hóa lộ trình di chuyển, Ứng dụng có thể yêu cầu bạn cấp quyền truy cập vào các tài nguyên phần cứng trên thiết bị bao gồm: Vị trí (GPS) thời gian thực, Máy ảnh (Camera).<br>
-      
-        <b>4. GIỚI HẠN TRÁCH NHIỆM VÀ QUYỀN ĐƠN PHƯƠNG CHẤM DỨT</b><br>
-        - Quản trị viên hệ thống có toàn quyền thu hồi quyền truy cập, khóa tài khoản hoặc ấn định thời hạn hiệu lực của ứng dụng mà không cần thông báo trước nếu phát hiện vi phạm.<br>
-        - Khi ứng dụng hết hạn hoặc nhận được lệnh xóa từ hệ thống, dữ liệu lưu trữ cục bộ trên thiết bị sẽ tự động được xóa bỏ hoàn toàn.<br>
-        - Chúng tôi không chịu trách nhiệm đối với các thiệt hại phát sinh do sử dụng sai mục đích quy định.<br><br>
+        <b>2. DỮ LIỆU THIẾT BỊ</b><br>
+        - Ứng dụng có thể yêu cầu quyền truy cập Vị trí (GPS) và Máy ảnh để phục vụ việc tìm cửa hàng, chỉ đường và báo cáo công việc.<br><br>
 
-        <b>5. MIỄN TRỪ TRÁCH NHIỆM VÀ CHẤP NHẬN RỦI RO</b><br>
-        - Việc sử dụng Ứng dụng hoàn toàn dựa trên sự tự nguyện của bạn. Bạn có toàn quyền không cài đặt, từ chối cài đặt hoặc gỡ bỏ Ứng dụng bất cứ lúc nào nếu không đồng ý với các điều khoản này.<br>
-        - Bằng việc bấm "Tôi đồng ý" và tiếp tục sử dụng, bạn xác nhận đã được thông báo rõ về các dữ liệu mà Ứng dụng thu thập (vị trí), mục đích và phạm vi sử dụng, đồng thời tự nguyện đồng ý cho việc xử lý các dữ liệu đó theo quy định của pháp luật về bảo vệ dữ liệu cá nhân hiện hành.<br>
-        - Bạn tự chịu trách nhiệm đối với các rủi ro phát sinh từ việc cấp quyền truy cập, từ thiết bị, tài khoản và dữ liệu của chính mình, bao gồm cả các tranh chấp hoặc nghĩa vụ pháp lý liên quan đến quyền riêng tư của bên thứ ba của bạn.<br>
-        - Trong phạm vi pháp luật cho phép, người phát triển phần mềm không chịu trách nhiệm đối với mọi tổn thất, khiếu nại hoặc rủi ro pháp lý phát sinh từ việc bạn chấp nhận cài đặt và sử dụng Ứng dụng.<br><br>
+        <b>3. THU HỒI QUYỀN VÀ HẾT HẠN</b><br>
+        - Quản trị viên có quyền khóa tài khoản hoặc ấn định thời hạn sử dụng nếu phát hiện vi phạm.<br>
+        - Khi ứng dụng hết hạn hoặc bị thu hồi, dữ liệu lưu trên thiết bị sẽ được xóa.<br><br>
 
-        <b>6. ĐIỀU KHOẢN THI HÀNH</b><br>
-        Bằng cách bấm nút "Tôi đồng ý" bên dưới, bạn xác nhận đã đọc, hiểu rõ và cam kết tuân thủ toàn bộ các điều khoản, quy định khắt khe nêu trên. Nếu bạn bấm "Từ chối", ứng dụng sẽ đóng lại và từ chối cung cấp dịch vụ.
+        <b>4. XÁC NHẬN</b><br>
+        Bằng việc bấm "Tôi đồng ý", bạn xác nhận đã đọc, hiểu và đồng ý các điều khoản trên, bao gồm việc ứng dụng thu thập vị trí của bạn. Nếu bấm "Từ chối", ứng dụng sẽ đóng lại.
       </div>
       <div class="row" style="gap: 10px;">
         <button class="btn-red" style="flex: 1; font-size: 13px;" onclick="onRejectTerms()">Từ chối</button>
@@ -379,6 +372,7 @@ function checkForUpdate(){
     .then(function(r){ return r.json(); })
     .then(function(info){
       if(!info || !info.version || info.version === BUILD_VER) return; // đã là bản mới nhất
+      try{ if(localStorage.getItem('updTried')===info.version) return; }catch(e){}
       window.updMsg='đang tải '+info.version+'...';showVer();
       console.log('Có bản mới:', info.version, '(đang dùng:', BUILD_VER, ')');
       return U.download({
@@ -388,22 +382,15 @@ function checkForUpdate(){
     })
     .then(function(bundle){
       if(!bundle) return;
-      return U.set(bundle); // đổi sang bản mới
-    })
-    .then(function(){
-      // Đổi xong, reload lại app để dùng bản mới ngay
-      // (có thể bỏ dòng dưới nếu muốn để lần MỞ APP SAU mới áp dụng, đỡ gián đoạn)
-      U.reload().catch(function(){ location.reload(); });
+      try{localStorage.setItem('updTried',bundle.version||'');}catch(e){}
+      return U.next(bundle); // áp dụng ở lần mở app sau, không reload khi đang nhập
     })
     .catch(function(e){ window.updMsg='lỗi cập nhật';showVer();console.log('Lỗi kiểm tra cập nhật:', e); });
 }
 
 setInterval(checkForUpdate, 10*60*1000); // kiểm tra định kỳ mỗi 10 phút, kể cả khi app đang mở
 // Kiểm tra ngay khi mở app, và mỗi khi quay lại app từ nền
-checkForUpdate();
-document.addEventListener('visibilitychange', function(){
-  if(document.visibilityState === 'visible') checkForUpdate();
-});
+setTimeout(checkForUpdate, 5000);
 var session = null, lastQuery = '', currentResults = [], currentSource = 'sheet';
 var wipeShown=false, photoData = null, gpsAcc = null, editRow = null, editName = null;
 function $(id){return document.getElementById(id);}
@@ -420,7 +407,7 @@ var SND={
   expired:'hết_hạn.mp3'
 };
 var sndObj={}, sndCur=null, sndPending=null;
-(function(){Object.keys(SND).forEach(function(k){try{var a=new Audio(encodeURI(SND[k]));a.preload='auto';sndObj[k]=a;}catch(e){}});})();
+(function(){Object.keys(SND).forEach(function(k){try{var a=new Audio(encodeURI(SND[k]));a.preload='none';sndObj[k]=a;}catch(e){}});})();
 function stopSound(){if(sndCur){try{sndCur.pause();sndCur.currentTime=0;}catch(e){}sndCur=null;}}
 function playSound(k){
   var a=sndObj[k];if(!a)return;
@@ -493,7 +480,7 @@ function api(action, params, post){
 // ---------- ĐĂNG NHẬP / PHÂN QUYỀN ----------
 function saveSession(){try{localStorage.setItem('session',JSON.stringify(session));}catch(e){}}
 function showVer(){
-  var v=(BUILD_VER.indexOf('__')===0)?'bản thử (web)':BUILD_VER;
+  var v=(BUILD_VER.indexOf('__')===0)?'1.0':BUILD_VER;
   var t=$('verText');if(t)t.textContent=v;
   var s=$('verInfo');if(s)s.textContent='Phiên bản: '+v+(window.updMsg?' • '+window.updMsg:'');
 }
@@ -582,7 +569,7 @@ function setLoginState(st){
   $('loginCode').placeholder=isPw?'Mật khẩu của bạn':'Mã truy cập do quản trị viên cấp';
   $('loginCode').setAttribute('autocapitalize',isPw?'none':'characters');
   $('loginHint').textContent=st==='pending'?'Bạn đã được cấp mã. Đăng nhập lần đầu bằng mã này, sau đó bạn sẽ đặt mật khẩu mới.':
-    (st==='password'?'Quên mật khẩu? Bấm "Gửi yêu cầu cấp mã" để xin cấp lại.':'');
+    (st==='password'?'Quên mật khẩu? Bấm "Đăng ký" để xin cấp lại.':'');
 }
 function onEmailInput(){
   var e=$('loginEmail').value.trim().toLowerCase();
@@ -603,7 +590,7 @@ function requestCode(){
   if(!validEmail(e)){$('loginStatus').innerHTML='<span class="error">Nhập email hợp lệ trước khi gửi yêu cầu.</span>';return;}
   $('reqBtn').disabled=true;$('loginStatus').textContent='Đang gửi yêu cầu...';
   api('requestCode',{email:e},true).then(function(res){
-    $('loginStatus').innerHTML='<span class="'+(res.success?'ok':'error')+'">'+esc(res.message||'')+'</span>';
+    $('loginStatus').innerHTML='<span class="'+(res.success?'ok':'error')+'">'+esc(res.success?'Bạn đã đăng ký thành công. Bạn vui lòng liên hệ IT để cấp quyền truy cập hệ thống.':(res.message||''))+'</span>';
     setTimeout(function(){$('reqBtn').disabled=!validEmail($('loginEmail').value.trim());},res.success?8000:1500);
   });
 }
