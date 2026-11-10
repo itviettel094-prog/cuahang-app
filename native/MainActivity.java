@@ -3,9 +3,9 @@ package com.cuahang.tim;
 import android.Manifest;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
+import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
@@ -29,16 +29,13 @@ public class MainActivity extends BridgeActivity {
 
     private boolean askingGps = false;
 
-    // Kết quả hộp thoại "Bật vị trí" của Google
+    // Kết quả hộp thoại "Bật vị trí" của Google.
+    // KHÔNG còn tự hỏi lại liên tục khi bị từ chối (trước đây lặp mỗi 0,5s -> hộp thoại bật mãi, app đơ
+    // khi dùng app giả GPS vì chế độ vị trí bị đổi). Lần quay lại app kế tiếp sẽ kiểm tra lại 1 lần.
     private final ActivityResultLauncher<IntentSenderRequest> gpsLauncher =
         registerForActivityResult(new ActivityResultContracts.StartIntentSenderForResult(), result -> {
             askingGps = false;
-            if (result.getResultCode() == RESULT_OK) {
-                onGpsReady();
-            } else {
-                // Từ chối -> hỏi lại sau 0.5 giây, cho đến khi đồng ý
-                new Handler(Looper.getMainLooper()).postDelayed(this::ensureGpsOn, 500);
-            }
+            if (result.getResultCode() == RESULT_OK) onGpsReady();
         });
 
     // Kết quả xin quyền hệ thống
@@ -56,7 +53,7 @@ public class MainActivity extends BridgeActivity {
         checkAndExecutePermissions();
     }
 
-    // Mỗi lần quay lại app (kể cả khi vừa tắt GPS) đều kiểm tra lại
+    // Mỗi lần quay lại app chỉ kiểm tra: vị trí có đang TẮT hẳn không (không xét độ chính xác).
     @Override
     public void onResume() {
         super.onResume();
@@ -80,19 +77,31 @@ public class MainActivity extends BridgeActivity {
         else permissionLauncher.launch(requiredPermissions);
     }
 
-    /** Kiểm tra GPS; nếu tắt thì hiện hộp thoại Google xin bật. */
+    // Vị trí của máy đang bật? (chế độ "chỉ thiết bị" khi dùng giả GPS vẫn tính là BẬT)
+    private boolean isLocationOn() {
+        try {
+            LocationManager lm = (LocationManager) getSystemService(LOCATION_SERVICE);
+            if (lm == null) return true;
+            if (Build.VERSION.SDK_INT >= 28) return lm.isLocationEnabled();
+            return lm.isProviderEnabled(LocationManager.GPS_PROVIDER)
+                || lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        } catch (Exception e) { return true; }
+    }
+
+    /** Chỉ hiện hộp thoại Google khi vị trí đang TẮT hẳn, và chỉ hỏi 1 lần mỗi lượt. */
     private void ensureGpsOn() {
         if (askingGps) return;
+        if (isLocationOn()) { onGpsReady(); return; }
         try {
             LocationRequest req = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000).build();
             LocationSettingsRequest settings = new LocationSettingsRequest.Builder()
                     .addLocationRequest(req)
-                    .setAlwaysShow(true)
+                    .setAlwaysShow(false)
                     .build();
             LocationServices.getSettingsClient(this)
                 .checkLocationSettings(settings)
-                .addOnSuccessListener(r -> onGpsReady())          // GPS đang bật
-                .addOnFailureListener(e -> {                      // GPS đang tắt
+                .addOnSuccessListener(r -> onGpsReady())
+                .addOnFailureListener(e -> {
                     if (e instanceof ResolvableApiException) {
                         try {
                             askingGps = true;

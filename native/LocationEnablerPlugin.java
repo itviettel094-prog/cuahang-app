@@ -1,8 +1,11 @@
 package com.cuahang.tim;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.location.LocationManager;
+import android.os.Build;
 import android.provider.Settings;
 
 import com.getcapacitor.JSObject;
@@ -17,8 +20,8 @@ import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.Priority;
 
 /**
- * Hiện hộp thoại chuẩn của Google "Bật vị trí để có kết quả chính xác hơn" (nút OK / Không, cảm ơn).
- * Người dùng chỉ cần bấm OK, không cần vào Cài đặt.
+ * Hiện hộp thoại chuẩn của Google "Bật vị trí" CHỈ KHI vị trí đang tắt hẳn.
+ * Nếu vị trí đã bật (kể cả chế độ "chỉ thiết bị") thì trả về ngay, không hiện hộp thoại.
  */
 @CapacitorPlugin(name = "LocationEnabler", requestCodes = {9341})
 public class LocationEnablerPlugin extends Plugin {
@@ -30,13 +33,24 @@ public class LocationEnablerPlugin extends Plugin {
         call.resolve(o);
     }
 
+    private boolean isLocationOn() {
+        try {
+            LocationManager lm = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
+            if (lm == null) return true;
+            if (Build.VERSION.SDK_INT >= 28) return lm.isLocationEnabled();
+            return lm.isProviderEnabled(LocationManager.GPS_PROVIDER)
+                || lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        } catch (Exception e) { return true; }
+    }
+
     @PluginMethod
     public void enable(final PluginCall call) {
+        if (isLocationOn()) { reply(call, true); return; }
         try {
             LocationRequest req = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000).build();
             LocationSettingsRequest settings = new LocationSettingsRequest.Builder()
                     .addLocationRequest(req)
-                    .setAlwaysShow(true)
+                    .setAlwaysShow(false)
                     .build();
             LocationServices.getSettingsClient(getActivity())
                     .checkLocationSettings(settings)
@@ -58,8 +72,6 @@ public class LocationEnablerPlugin extends Plugin {
         }
     }
 
-    // Mở thẳng màn hình Cài đặt > Vị trí của Android, dùng khi hộp thoại tự động
-    // (checkLocationSettings) không bật lên được hoặc người dùng cần tự bật tay.
     @PluginMethod
     public void openSettings(final PluginCall call) {
         try {
