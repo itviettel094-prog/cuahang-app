@@ -639,16 +639,15 @@ function logAdminFake(g){
 // Hỏi Android: vị trí hiện tại có bị gắn cờ "mock" không. Bản APK cũ chưa có plugin -> coi như không biết (không chặn).
 // Đã TẮT chống GPS giả: không gọi plugin native nữa (tránh treo/đơ), luôn coi như không phải vị trí giả.
 function guardCheck(){ return Promise.resolve({mock:false}); }
+// Chỉ cho 1 lượt dò vị trí chạy tại 1 thời điểm: các lời gọi chồng nhau dùng chung kết quả (tránh nhiều watch + hộp thoại chạy cùng lúc)
+var locInflight=null;
 function locateSafe(o){
-  return locate(o).then(function(p){
-    return guardCheck().then(function(g){
-      if(g&&g.mock){
-        if(!isAdmin())throw MSG_FAKE;
-        logAdminFake(g);          // admin được phép dùng GPS giả: không chặn, chỉ ghi nhật ký (1 lần / phiên)
-      }
-      return p;
-    });
-  });
+  if(locInflight)return locInflight;
+  var pr=locate(o);
+  locInflight=pr;
+  function clr(){ if(locInflight===pr)locInflight=null; }
+  pr.then(clr,clr);
+  return pr;
 }
 // Ngay từ màn hình đăng nhập: nếu chưa bật / chưa cấp quyền GPS thì hiện hộp thoại xin quyền và phát âm thanh "cấp quyền GPS" cùng lúc
 function primeGps(){
@@ -682,8 +681,10 @@ function locate(o){
     function ok(){ if(done)return; done=true; cleanup(); resolve(best); }
     function bad(msg){ if(done)return; done=true; cleanup(); reject(msg); }
     function finish(){ if(best)ok(); else bad(MSG_FAIL); }
+    var lastPosT=0;
     function onPos(pos){
       if(done||!pos||!pos.coords)return;
+      var nt=Date.now(); if(best&&nt-lastPosT<250)return; lastPosT=nt;   // app giả GPS có thể bắn vị trí rất dày
       var acc=pos.coords.accuracy;
       if(!best||acc<best.acc)best={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:acc,time:Date.now()};
       if(o.onProgress)o.onProgress(best.acc,Math.round((Date.now()-started)/1000));
@@ -794,7 +795,7 @@ function refreshPos(){
   ensureFreshPos(true);
 }
 document.addEventListener('visibilitychange',function(){
-  if(document.visibilityState==='visible'&&session&&gateOk&&(!userPos||(Date.now()-userPos.time>60000&&!(guardInfo&&guardInfo.mock))))ensureFreshPos(false);
+  if(document.visibilityState==='visible'&&session&&gateOk&&!locInflight&&(!userPos||(Date.now()-userPos.time>60000&&!(guardInfo&&guardInfo.mock))))ensureFreshPos(false);
 });
 
 // ---------- TIỆN ÍCH KHOẢNG CÁCH / CHỈ ĐƯỜNG ----------
