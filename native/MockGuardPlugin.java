@@ -34,6 +34,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @CapacitorPlugin(name = "MockGuard")
 public class MockGuardPlugin extends Plugin {
 
+    // Thời gian chờ tối đa khi lấy vị trí để kiểm tra cờ "mock" (ms).
+    // Hàm này chạy SAU KHI JS đã có vị trí (locate() ở index.html), nên đây là độ trễ CỘNG THÊM
+    // vào mỗi lần locateSafe(). Giảm từ 8000 -> 3000 để tránh "đơ" kéo dài khi tín hiệu GPS yếu.
+    private static final long CHECK_TIMEOUT_MS = 3000;
+
     @SuppressWarnings("deprecation")
     private static boolean isMock(Location l) {
         if (Build.VERSION.SDK_INT >= 31) return l.isMock();
@@ -147,7 +152,7 @@ public class MockGuardPlugin extends Plugin {
         try {
             FusedLocationProviderClient c = LocationServices.getFusedLocationProviderClient(getActivity());
             final CancellationTokenSource cts = new CancellationTokenSource();
-            new Handler(Looper.getMainLooper()).postDelayed(() -> { cts.cancel(); reply(call, done, null); }, 8000);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> { cts.cancel(); reply(call, done, null); }, CHECK_TIMEOUT_MS);
             c.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.getToken())
                 .addOnSuccessListener(loc -> reply(call, done, loc))
                 .addOnFailureListener(e -> reply(call, done, null));
