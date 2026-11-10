@@ -639,7 +639,10 @@ function logAdminFake(g){
 // Hỏi Android: vị trí hiện tại có bị gắn cờ "mock" không. Bản APK cũ chưa có plugin -> coi như không biết (không chặn).
 function guardCheck(){
   var g=getGuard();if(!g)return Promise.resolve({mock:false});
-  return g.check().then(function(r){guardInfo=r||{};return guardInfo;}).catch(function(){return {mock:false};});
+  var call=g.check().then(function(r){guardInfo=r||{};return guardInfo;}).catch(function(){return {mock:false};});
+  // chốt chặn: nếu native không trả lời trong 5s thì bỏ qua, tuyệt đối không để UI chờ vô hạn
+  var guard=new Promise(function(res){setTimeout(function(){res({mock:false,timeout:true});},5000);});
+  return Promise.race([call,guard]);
 }
 function locateSafe(o){
   return locate(o).then(function(p){
@@ -1124,8 +1127,12 @@ function getMyLocation(){
     if(gpsWatch!==token||!pos||!pos.coords)return;
     var acc=pos.coords.accuracy;
     if(!best||acc<best.acc)best={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:acc};
-    var secs=Math.round((Date.now()-started)/1000);
-    addMsg('Đang dò GPS... '+secs+'s | hiện tại ~'+Math.round(acc)+'m | tốt nhất ~'+Math.round(best.acc)+'m');
+    var nowT=Date.now();
+    if(nowT-lastUi>=700){
+      lastUi=nowT;
+      var secs=Math.round((nowT-started)/1000);
+      addMsg('Đang dò GPS... '+secs+'s | hiện tại ~'+Math.round(acc)+'m | tốt nhất ~'+Math.round(best.acc)+'m');
+    }
     if(best.acc<=TARGET)finish();
   }
   function fail(msg){
@@ -1134,7 +1141,7 @@ function getMyLocation(){
     addMsg(msg||'Không lấy được GPS. Hãy bật Vị trí, cấp quyền "Chính xác", hoặc dùng link Google Maps.','error');
   }
 
-  var started=Date.now();
+  var started=Date.now(), lastUi=0;
   token.timer=setTimeout(finish,MAXWAIT);
   var opts={enableHighAccuracy:true,timeout:20000,maximumAge:0};
 
