@@ -4,7 +4,6 @@ import android.annotation.SuppressLint;
 import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
@@ -26,6 +25,7 @@ import com.google.android.gms.location.Priority;
 import com.google.android.gms.tasks.CancellationTokenSource;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -53,9 +53,16 @@ public class MockGuardPlugin extends Plugin {
     // Cache danh sách app "mock location" trong 20 giây: quét app cài trên máy không đổi
     // liên tục trong 1 phiên sử dụng, nên không cần quét lại mỗi lần bấm nút.
     private static final long CACHE_MS = 20000;
-    private long cacheTime = 0;
-    private JSArray cacheAppOps = null;
-    private JSArray cacheLegacy = null;
+    private volatile long cacheTime = 0;
+    private volatile JSArray cacheAppOps = null;
+    private final AtomicBoolean scanning = new AtomicBoolean(false);
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+
+    // Quét sẵn 1 lần ngay khi plugin được nạp để lần bấm đầu tiên không phải chờ.
+    @Override
+    public void load() {
+        bgExecutor.execute(this::refreshMockApps);
+    }
 
     @SuppressWarnings("deprecation")
     private static boolean isMock(Location l) {
@@ -63,50 +70,30 @@ public class MockGuardPlugin extends Plugin {
         return l.isFromMockProvider();
     }
 
-    @SuppressLint("QueryPermissionsNeeded")
-    @SuppressWarnings("deprecation")
-    private JSArray legacyMockPermApps() {
-        // Giữ lại để tham khảo/ghi log, nhưng từ Android 6.0 (API 23) app KHÔNG CẦN khai
-        // permission ACCESS_MOCK_LOCATION nữa để được chọn làm "mock location app" trong
-        // Developer Options, nên danh sách này gần như luôn rỗng với app giả GPS hiện đại.
-        JSArray arr = new JSArray();
-        try {
-            PackageManager pm = getContext().getPackageManager();
-            for (PackageInfo pi : pm.getInstalledPackages(PackageManager.GET_PERMISSIONS)) {
-                if (pi.applicationInfo == null || (pi.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0) continue;
-                if (pi.requestedPermissions == null) continue;
-                for (String p : pi.requestedPermissions) {
-                    if ("android.permission.ACCESS_MOCK_LOCATION".equals(p)) {
-                        arr.put(String.valueOf(pm.getApplicationLabel(pi.applicationInfo)) + " (" + pi.packageName + ")");
-                        break;
-                    }
-                }
-            }
-        } catch (Exception ignored) {}
-        return arr;
-    }
-
+    // Quét app đang được cấp OP_MOCK_LOCATION. Chỉ chạy trên bgExecutor.
+    // Nhẹ hơn bản cũ: (1) bỏ hẳn quét GET_PERMISSIONS (nặng, vô dụng từ Android 6+),
+    // (2) chỉ quét khi đã bật Tuỳ chọn nhà phát triển (không bật thì không thể chọn app giả GPS),
+    // (3) dùng getInstalledApplications thay vì getInstalledPackages.
     @SuppressLint("QueryPermissionsNeeded")
     @SuppressWarnings("deprecation")
     private JSArray mockAppsViaAppOps() {
-        // Cách đúng cho Android 6.0+: dò qua AppOpsManager xem app nào đang được hệ thống
-        // cấp OP_MOCK_LOCATION (tức app đang được chọn làm "mock location app" trong
-        // Developer Options), bất kể app đó có khai permission cũ hay không.
         JSArray arr = new JSArray();
         try {
+            if (!devOptionsOn()) return arr;
             AppOpsManager aom = (AppOpsManager) getContext().getSystemService(Context.APP_OPS_SERVICE);
             PackageManager pm = getContext().getPackageManager();
             if (aom == null) return arr;
-            for (PackageInfo pi : pm.getInstalledPackages(0)) {
-                if (pi.applicationInfo == null || (pi.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0) continue;
+            List<ApplicationInfo> apps = pm.getInstalledApplications(0);
+            for (ApplicationInfo ai : apps) {
+                if ((ai.flags & ApplicationInfo.FLAG_SYSTEM) != 0) continue;
                 try {
-                    int mode = aom.checkOpNoThrow(AppOpsManager.OPSTR_MOCK_LOCATION, pi.applicationInfo.uid, pi.packageName);
+                    int mode = aom.checkOpNoThrow(AppOpsManager.OPSTR_MOCK_LOCATION, ai.uid, ai.packageName);
                     if (mode == AppOpsManager.MODE_ALLOWED) {
-                        arr.put(String.valueOf(pm.getApplicationLabel(pi.applicationInfo)) + " (" + pi.packageName + ")");
+                        arr.put(String.valueOf(pm.getApplicationLabel(ai)) + " (" + ai.packageName + ")");
                     }
                 } catch (Exception ignored) {}
             }
-        } catch (Exception ignored) {}
+        } catch (Throwable ignored) {}
         return arr;
     }
 
@@ -139,14 +126,14 @@ public class MockGuardPlugin extends Plugin {
         return false;
     }
 
-    // Lấy danh sách app mock (có cache) - hàm NẶNG, chỉ được gọi từ bgExecutor, KHÔNG BAO GIỜ
-    // gọi trực tiếp từ UI thread.
-    private synchronized void refreshMockAppsIfNeeded() {
-        long now = System.currentTimeMillis();
-        if (cacheAppOps != null && (now - cacheTime) < CACHE_MS) return;
-        cacheAppOps = mockAppsViaAppOps();
-        cacheLegacy = legacyMockPermApps();
-        cacheTime = now;
+    private void refreshMockApps() {
+        if (!scanning.compareAndSet(false, true)) return;
+        try {
+            cacheAppOps = mockAppsViaAppOps();
+            cacheTime = System.currentTimeMillis();
+        } finally {
+            scanning.set(false);
+        }
     }
 
     // Callback vị trí (loc) chạy trên UI thread -> chỉ đóng gói toạ độ rồi giao hết việc
@@ -161,12 +148,10 @@ public class MockGuardPlugin extends Plugin {
 
         bgExecutor.execute(() -> {
             try {
-                refreshMockAppsIfNeeded();
+                // Lần đầu chưa có cache: quét 1 lần. Các lần sau: dùng cache ngay, nếu cũ thì
+                // trả kết quả trước rồi mới quét lại (stale-while-revalidate) -> không bao giờ chờ lâu.
+                if (cacheAppOps == null) refreshMockApps();
                 JSArray appOpsMockApps = cacheAppOps != null ? cacheAppOps : new JSArray();
-                JSArray legacyApps = cacheLegacy != null ? cacheLegacy : new JSArray();
-                // "mock" = cờ chính thức của OS trên chính location vừa lấy được, HOẶC có app đang
-                // được hệ thống cấp quyền mock-location ngay lúc này (bắt được cả trường hợp OS
-                // không gắn cờ lên object Location vì app giả hook thẳng vào provider).
                 boolean mock = osFlaggedMock || appOpsMockApps.length() > 0;
 
                 JSObject o = new JSObject();
@@ -179,11 +164,12 @@ public class MockGuardPlugin extends Plugin {
                     o.put("acc", acc);
                 }
                 o.put("mockApps", appOpsMockApps);
-                o.put("legacyMockPermApps", legacyApps);
+                o.put("legacyMockPermApps", new JSArray());
                 o.put("devOptions", devOptionsOn());
                 o.put("rootOrXposed", rootOrXposedDetected());
                 call.resolve(o);
-            } catch (Exception e) {
+                if ((System.currentTimeMillis() - cacheTime) >= CACHE_MS) refreshMockApps();
+            } catch (Throwable e) {
                 JSObject o = new JSObject();
                 o.put("known", hasLoc);
                 o.put("mock", osFlaggedMock);
@@ -198,11 +184,12 @@ public class MockGuardPlugin extends Plugin {
         try {
             FusedLocationProviderClient c = LocationServices.getFusedLocationProviderClient(getActivity());
             final CancellationTokenSource cts = new CancellationTokenSource();
-            new Handler(Looper.getMainLooper()).postDelayed(() -> { cts.cancel(); reply(call, done, null); }, CHECK_TIMEOUT_MS);
+            final Runnable timeout = () -> { cts.cancel(); reply(call, done, null); };
+            mainHandler.postDelayed(timeout, CHECK_TIMEOUT_MS);
             c.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.getToken())
-                .addOnSuccessListener(loc -> reply(call, done, loc))
-                .addOnFailureListener(e -> reply(call, done, null));
-        } catch (Exception e) {
+                .addOnSuccessListener(loc -> { mainHandler.removeCallbacks(timeout); reply(call, done, loc); })
+                .addOnFailureListener(e -> { mainHandler.removeCallbacks(timeout); reply(call, done, null); });
+        } catch (Throwable e) {
             reply(call, done, null);
         }
     }
