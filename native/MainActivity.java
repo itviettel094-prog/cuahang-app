@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.WindowManager;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
@@ -50,6 +51,8 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(MockGuardPlugin.class);
         registerPlugin(AppControlPlugin.class);
         super.onCreate(savedInstanceState);
+        // Giữ màn hình luôn sáng khi đang mở app (thoát app thì màn hình tự tắt như bình thường)
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         checkAndExecutePermissions();
     }
 
