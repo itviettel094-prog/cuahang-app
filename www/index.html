@@ -667,15 +667,31 @@ function primeGps(){
   ask();
 }
 
+// Lấy vị trí từng điểm một (mỗi lần 1 yêu cầu, cách nhau 1s) thay vì watchPosition: app giả GPS đẩy luồng toạ độ dồn dập dễ làm đơ app.
+function pollGps(G,onPos,onFatal,stop){
+  var alive=true;
+  (function loop(){
+    if(!alive||stop())return;
+    G.getCurrentPosition({enableHighAccuracy:true,timeout:4000,maximumAge:0}).then(function(pos){ if(alive&&!stop())onPos(pos); })
+     .catch(function(e){
+       var m=String((e&&e.message)||'');
+       if((e&&(e.code===1||e.code==='PERMISSION_DENIED'))||/denied|permission|not enabled|disabled|turned off|location services/i.test(m)){ if(alive&&!stop())onFatal(e); }
+     })
+     .then(function(){ if(alive&&!stop())setTimeout(loop,1000); });
+  })();
+  return {stop:function(){alive=false;}};
+}
+
 // Dò GPS: lấy vị trí có sẵn/gần đúng NGAY (quickAcc), đồng thời dò chính xác;
 // dừng khi đạt target (mét) hoặc đạt quickAcc nếu có đặt.
 function locate(o){
   o=o||{};
   var target=o.target||25, maxWait=o.maxWait||8000, quick=o.quickAcc||0;
   return new Promise(function(resolve,reject){
-    var G=capGeo(), best=null, done=false, id=null, timer=null, started=Date.now();
+    var G=capGeo(), best=null, done=false, id=null, timer=null, poller=null, started=Date.now();
     function cleanup(){
       clearTimeout(timer);
+      if(poller)poller.stop();
       try{ if(id!=null){ if(G)G.clearWatch({id:id}); else navigator.geolocation.clearWatch(id); } }catch(e){}
     }
     function ok(){ if(done)return; done=true; cleanup(); resolve(best); }
@@ -706,7 +722,8 @@ function locate(o){
         if(st==='denied'){bad(MSG_DENIED);return null;}
         if(st==='off'){bad(MSG_OFF);return null;}
         if(quick){ G.getCurrentPosition(fast).then(onPos).catch(function(){}); }
-        return G.watchPosition(opts,function(pos,err){ if(pos)onPos(pos); else onErr(err); });
+        poller=pollGps(G,onPos,onErr,function(){return done;});
+        return null;
       }).then(function(wid){
         if(wid==null)return;
         if(done){try{G.clearWatch({id:wid});}catch(e){}return;}
@@ -1089,7 +1106,7 @@ function resolveLink(){
 var gpsWatch=null;
 function stopGps(){
   var w=gpsWatch;if(!w)return;
-  gpsWatch=null;clearTimeout(w.timer);
+  gpsWatch=null;clearTimeout(w.timer);if(w.poller)w.poller.stop();
   try{
     if(w.id!=null){ if(w.G)w.G.clearWatch({id:w.id}); else navigator.geolocation.clearWatch(w.id); }
   }catch(e){}
@@ -1151,7 +1168,8 @@ function getMyLocation(){
   if(G){
     G.requestPermissions().then(function(){
       if(gpsWatch!==token)return null;
-      return G.watchPosition(opts,function(pos,err){ if(pos)onPos(pos); });
+      token.poller=pollGps(G,onPos,function(e){fail();},function(){return gpsWatch!==token;});
+      return null;
     }).then(function(id){
       if(id==null)return;
       if(gpsWatch!==token){try{G.clearWatch({id:id});}catch(e){}return;}
