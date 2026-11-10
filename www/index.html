@@ -1898,6 +1898,18 @@ window.addEventListener('load',syncLoginVer);
 .cmsg small{display:block;font-size:10px;opacity:.65;margin-top:2px}
 .cme{align-self:flex-end;background:#1b7a35;color:#fff}
 .cthem{align-self:flex-start;background:#fff;color:#175c2a;border:1px solid #bfe3c9}
+/* --- chống tràn khung (chat admin, hàng nút nhân viên, popup bản đồ) --- */
+#chatModal{overflow:hidden}
+#chatModal>div{width:100%;max-width:min(440px,100%);min-width:0;height:min(80vh,620px);height:min(80dvh,620px);max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);overflow:hidden}
+#chatList{min-height:0;overflow-x:hidden}
+#chatList>*{max-width:85%;overflow-wrap:anywhere;word-break:break-word}
+#adminSection{overflow-x:hidden}
+#adminSection .user-row>div:first-child{flex:1 1 100%;min-width:0;overflow-wrap:anywhere}
+#adminSection .user-row .row{flex-wrap:wrap;width:100%;gap:6px}
+#adminSection .user-row .btn-small{padding:8px 10px;font-size:12px;flex:0 0 auto}
+#liveMap{width:100%;max-width:100%}
+.leaflet-popup-content{margin:10px 12px;max-width:100%;overflow-wrap:anywhere}
+.leaflet-popup-content .btn-small{white-space:normal}
 </style>
 <div id="chatModal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.45);align-items:center;justify-content:center;padding:12px" onclick="if(event.target===this)closeChat()">
   <div style="background:var(--gbg,#f3fbf5);color:var(--gtxt,#175c2a);border:1px solid var(--gbd,#bfe3c9);border-radius:18px;width:100%;max-width:440px;height:80vh;max-height:620px;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.25)">
@@ -2089,7 +2101,7 @@ function drawLive(){
     var col=x.outside?'#d93025':(x.online?'#188038':'#80868b');
     var m=L.circleMarker([x.lat,x.lng],{radius:9,color:'#fff',weight:2,fillColor:col,fillOpacity:1}).addTo(liveLayer);
     if(x.acc>0&&x.acc<2000)L.circle([x.lat,x.lng],{radius:x.acc,color:col,weight:1,fillOpacity:0.08,interactive:false}).addTo(liveLayer);
-    m.bindPopup(popupFor(x),{autoPan:false});
+    m.bindPopup(popupFor(x),{autoPan:false,maxWidth:230,minWidth:180});
     m.on('popupopen',function(){livePop=x.email;});
     m.bindTooltip(x.email.split('@')[0]+(x.outside?' ⚠️':'')+(x.alarm?' 🔔':''),{permanent:true,direction:'top',offset:[0,-8]});
     pts.push([x.lat,x.lng]);
@@ -2247,6 +2259,6 @@ function loadPending(quiet){
 syncHb();
 </script>
 <button id="aboutBtn" onclick="openAbout()" style="position:fixed;right:6px;bottom:2px;font-size:10px;opacity:.45;z-index:5;background:none;border:none;box-shadow:none;padding:0;margin:0;width:auto;min-width:0;color:inherit;font-weight:400;text-transform:none">ℹ️ Thông tin</button>
-<div id="verTag" style="position:fixed;left:6px;bottom:2px;font-size:10px;opacity:.45;pointer-events:none;z-index:5">bản: v9 Team Trần Thị Dung</div>
+<div id="verTag" style="position:fixed;left:6px;bottom:2px;font-size:10px;opacity:.45;pointer-events:none;z-index:5">bản: v9</div>
 </body>
 </html>
