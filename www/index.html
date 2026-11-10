@@ -1766,6 +1766,23 @@ function revokeUser(email){
   document.addEventListener('visibilitychange',function(){if(!document.hidden)check();});
 })();
 </script>
-<div id="verTag" style="position:fixed;left:6px;bottom:2px;font-size:10px;opacity:.45;pointer-events:none;z-index:5">bản: v4</div>
+<script>
+// Giữ màn hình luôn sáng khi đang dùng app (Screen Wake Lock); tự xin lại khi quay lại app
+(function(){
+  var wl=null;
+  function lock(){
+    try{
+      if(!(navigator.wakeLock&&navigator.wakeLock.request))return;
+      navigator.wakeLock.request('screen').then(function(l){
+        wl=l; l.addEventListener('release',function(){ wl=null; });
+      }).catch(function(){});
+    }catch(e){}
+  }
+  lock();
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible'&&!wl)lock(); });
+  document.addEventListener('pointerdown',function(){ if(!wl)lock(); },true);
+})();
+</script>
+<div id="verTag" style="position:fixed;left:6px;bottom:2px;font-size:10px;opacity:.45;pointer-events:none;z-index:5">bản: v5</div>
 </body>
 </html>
