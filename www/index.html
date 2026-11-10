@@ -228,8 +228,9 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
     <button class="btn-small" style="width:100%;margin:-4px 0 12px;background:#1b7a35;color:#fff;border:none;font-size:13px" onclick="nearbyMe()">📍 Cửa hàng gần tôi nhất</button>
     <div class="row" style="margin-bottom:14px">
       <button id="btnAdd" class="btn-green" style="flex:1" onclick="openForm(false)">➕ Thêm cửa hàng mới</button>
-      <button id="btnAdmin" class="btn-orange hidden" style="flex:1" onclick="toggleAdmin()">🔑 Quản lý truy cập</button>
+      <button id="btnAdmin" class="btn-orange hidden" style="flex:1" onclick="toggleAdmin()">🔑 Quản lý truy cập <span id="adminBadge" class="badge" style="display:none"></span></button>
     </div>
+    <button id="btnChat" class="btn-small" style="width:100%;margin:-6px 0 14px;background:#1b7a35;color:#fff;border:none" onclick="openChat('')">💬 Chat với quản trị viên <span id="chatBadge" class="badge" style="display:none"></span></button>
 
     <button class="btn-small" style="width:100%;margin:-6px 0 14px" onclick="toggleImport()">📥 Nhập file / link để tìm hàng loạt</button>
 
@@ -264,6 +265,8 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
       <div class="hint">Để trống = không giới hạn. Qua hạn sử dụng: không đăng nhập được. Đến ngày xoá app: app xoá dữ liệu trên máy và yêu cầu gỡ cài đặt.</div>
       <div id="codeBox"></div>
       <div id="adminStatus" style="margin:10px 0;font-size:14px"></div>
+      <label>Đề xuất cửa hàng chờ duyệt</label>
+      <div id="pendList"></div>
       <label>Yêu cầu chờ cấp mã</label>
       <div id="reqList"></div>
       <label>Danh sách nhân viên</label>
@@ -452,7 +455,8 @@ function applyRole(){
   if(!session)return;
   $('whoAmI').textContent=session.email;
   $('btnAdmin').classList.toggle('hidden',!isAdmin());
-  $('btnAdd').classList.toggle('hidden',!isAdmin());
+  $('btnAdd').classList.remove('hidden');
+  $('btnChat').classList.toggle('hidden',isAdmin());
   $('expInfo').textContent=(!isAdmin()&&session.expires)?('Hạn dùng đến '+fmtDate(session.expires)):'';
 }
 function fmtDate(iso){var m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?(m[3]+'/'+m[2]+'/'+m[1]):String(iso||'');}
@@ -961,8 +965,7 @@ function openGroceryMaps(){
 }
 function showNotFound(msg){
   // Không tìm thấy: không hiện khung cảnh báo + nút "Tìm trên bản đồ" nữa, thay bằng nút mở Google Maps tìm cửa hàng quanh vị trí
-  $('notFoundBox').innerHTML=isAdmin()?
-    '<div class="notfound"><div class="row wrap"><button class="btn-green" onclick="openForm(false)">➕ Thêm mới</button></div></div>':'';   // chỉ admin mới có nút Thêm mới
+  $('notFoundBox').innerHTML='<div class="notfound"><div class="row wrap"><button class="btn-green" onclick="openForm(false)">➕ Thêm mới</button></div></div>';   // mọi nhân viên đều có nút Thêm mới (nhân viên: gửi admin duyệt)
   showMapsSearchBtn();
 }
 function searchOnMaps(){
@@ -1584,7 +1587,7 @@ function toggleAdmin(){
   var sec=$('adminSection');
   var show=sec.classList.contains('hidden');
   sec.classList.toggle('hidden',!show);
-  if(show){$('codeBox').innerHTML='';$('adminStatus').innerHTML='';loadRequests();loadUsers();sec.scrollIntoView({behavior:'smooth'});} else {admCamStop();}
+  if(show){$('codeBox').innerHTML='';$('adminStatus').innerHTML='';loadRequests();loadPending();loadUsers();sec.scrollIntoView({behavior:'smooth'});} else {admCamStop();}
 }
 
 // ---------- ADMIN: CHỤP ẢNH NGAY TRÊN MÁY NÀY ----------
@@ -1672,6 +1675,7 @@ function loadUsers(){
       var d=document.createElement('div');d.className='user-row';
       var info=document.createElement('div');
       var nm=document.createElement('b');nm.textContent=u.email;
+      var pr=document.createElement('span');pr.className='pres';pr.setAttribute('data-email',u.email);pr.style.cssText='margin-left:6px;font-size:12px;font-weight:400';setPres(pr,u);nm.appendChild(pr);
       var st=document.createElement('div');st.className='hint';
       var exTxt=u.exState==='wipe'?' • ⛔ ĐÃ ĐẾN NGÀY XOÁ APP':(u.exState==='expired'?' • ⛔ ĐÃ HẾT HẠN':'');
       st.textContent=(u.status==='active'?(u.pwSet?'Đang hoạt động':'Chờ đăng nhập lần đầu / đặt mật khẩu'):'Đã thu hồi')+' • cấp '+u.issued+' bởi '+u.by+
@@ -1681,6 +1685,7 @@ function loadUsers(){
       var b1=document.createElement('button');b1.className='btn-small';b1.textContent='Cấp lại mã';
       b1.onclick=function(){issueFor(u.email,true);};
       btns.appendChild(b1);
+      if(u.status==='active'){var bc=document.createElement('button');bc.className='btn-small';bc.setAttribute('data-chat',u.email);bc.onclick=function(){openChat(u.email);};setChatBtn(bc,u.unread);btns.appendChild(bc);}
       var bx=document.createElement('button');bx.className='btn-small';bx.textContent='📅 Đặt hạn';
       var panel=document.createElement('div');panel.className='hidden';panel.style.cssText='width:100%;margin-top:8px';
       panel.innerHTML='<div class="row"><div style="flex:1"><label style="margin-top:0">Hạn sử dụng</label><input type="date" class="dEx"></div><div style="flex:1"><label style="margin-top:0">Ngày xoá app</label><input type="date" class="dWipe"></div></div>'+
@@ -1863,6 +1868,169 @@ window.addEventListener('load',syncLoginVer);
     w.appendChild(b);
   });
 })();
+</script>
+<style>
+.badge{display:inline-block;min-width:18px;padding:1px 6px;border-radius:10px;background:#d93025;color:#fff;font-size:11px;font-weight:700;margin-left:4px;text-align:center}
+.cmsg{max-width:82%;padding:7px 10px;border-radius:12px;font-size:14px;line-height:1.4;word-break:break-word;white-space:pre-wrap}
+.cmsg small{display:block;font-size:10px;opacity:.65;margin-top:2px}
+.cme{align-self:flex-end;background:#1b7a35;color:#fff}
+.cthem{align-self:flex-start;background:#fff;color:#175c2a;border:1px solid #bfe3c9}
+</style>
+<div id="chatModal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.45);align-items:center;justify-content:center;padding:12px" onclick="if(event.target===this)closeChat()">
+  <div style="background:var(--gbg,#f3fbf5);color:var(--gtxt,#175c2a);border:1px solid var(--gbd,#bfe3c9);border-radius:18px;width:100%;max-width:440px;height:80vh;max-height:620px;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.25)">
+    <div style="padding:12px 14px;border-bottom:1px solid var(--gbd,#bfe3c9);display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <div style="min-width:0"><b id="chatTitle" style="word-break:break-all"></b><div id="chatSub" style="font-size:12px;color:var(--gmut,#5f7f68)"></div></div>
+      <button class="btn-small" onclick="closeChat()">Đóng</button>
+    </div>
+    <div id="chatList" style="flex:1;overflow:auto;padding:10px 12px;display:flex;flex-direction:column;gap:6px"></div>
+    <div style="display:flex;gap:6px;padding:10px;border-top:1px solid var(--gbd,#bfe3c9)">
+      <input type="text" id="chatInput" placeholder="Nhập tin nhắn..." maxlength="1000" style="flex:1;min-width:0" onkeydown="if(event.key==='Enter')sendChat()" />
+      <button id="chatSendBtn" onclick="sendChat()" style="width:auto;padding:10px 14px">Gửi</button>
+    </div>
+  </div>
+</div>
+<script>
+// ====== ONLINE / OFFLINE + CHAT + DUYỆT ĐỀ XUẤT ======
+function fmtAgo(sec){
+  sec=Math.max(0,Math.round(sec));
+  if(sec<60)return 'vài giây trước';
+  var m=Math.floor(sec/60);
+  if(m<60)return m+' phút trước';
+  var h=Math.floor(m/60);
+  if(h<24)return h+' giờ'+(m%60?' '+(m%60)+' phút':'')+' trước';
+  var d=Math.floor(h/24);
+  return d+' ngày'+(h%24?' '+(h%24)+' giờ':'')+' trước';
+}
+function setPres(el,u){
+  el.textContent=u.online?' 🟢 Online':(' ⚪ Offline '+(u.agoSec!=null?fmtAgo(u.agoSec):'(chưa từng vào)'));
+  el.style.color=u.online?'#188038':'';
+}
+function setChatBtn(b,n){
+  n=Number(n)||0;
+  b.textContent='💬 Chat'+(n>0?' ('+n+')':'');
+  b.style.background=n>0?'#d93025':'';
+}
+// --- nhịp "còn hoạt động" 30 giây/lần ---
+var hbTimer=null;
+function hbOnce(off){
+  if(!session||session.mustChange)return Promise.resolve();
+  return api('hb',off?{off:1}:{},true).then(function(res){
+    if(off||!res||!res.success||!session)return;
+    var cb=$('chatBadge'),ab=$('adminBadge');
+    if(isAdmin()){
+      var t=(res.unread?'💬'+res.unread:'')+(res.pending?' 📝'+res.pending:'');
+      ab.textContent=t.trim();ab.style.display=t?'inline-block':'none';
+      if(!$('adminSection').classList.contains('hidden')){refreshPresence();loadPending(true);}
+    } else {
+      cb.textContent=res.unread||'';cb.style.display=res.unread?'inline-block':'none';
+    }
+  });
+}
+function syncHb(){
+  if(session&&!session.mustChange){if(!hbTimer){hbOnce();hbTimer=setInterval(function(){hbOnce();},30000);}}
+  else if(hbTimer){clearInterval(hbTimer);hbTimer=null;}
+}
+var _applyRole=applyRole;
+applyRole=function(){_applyRole();syncHb();};
+var _logout=logout;
+logout=function(msg){
+  if(session&&!session.mustChange&&!(typeof msg==='string'&&msg))hbOnce(true);   // báo offline ngay khi đăng xuất
+  closeChat(true);
+  _logout(msg);
+};
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')hbOnce();});
+function refreshPresence(){
+  if(!isAdmin())return;
+  api('listUsers').then(function(res){
+    if(!res||!res.success)return;
+    res.users.forEach(function(u){
+      document.querySelectorAll('.pres').forEach(function(el){if(el.getAttribute('data-email')===u.email)setPres(el,u);});
+      document.querySelectorAll('button[data-chat]').forEach(function(b){if(b.getAttribute('data-chat')===u.email)setChatBtn(b,u.unread);});
+    });
+  });
+}
+// --- chat ---
+var chatWith='',chatLast=0,chatTimer=null,chatBusy=false,chatSeen={};
+function openChat(email){
+  chatWith=email||'';chatLast=0;chatSeen={};chatBusy=false;
+  $('chatList').innerHTML='';$('chatSub').textContent='';
+  $('chatTitle').textContent=isAdmin()?('Chat với '+email):'Chat với quản trị viên';
+  $('chatModal').style.display='flex';
+  chatPoll();clearInterval(chatTimer);chatTimer=setInterval(chatPoll,5000);
+  setTimeout(function(){try{$('chatInput').focus();}catch(e){}},150);
+}
+function closeChat(noHb){
+  var was=$('chatModal').style.display!=='none';
+  $('chatModal').style.display='none';clearInterval(chatTimer);chatTimer=null;chatWith='';
+  if(!noHb&&was){hbOnce();if(isAdmin()&&!$('adminSection').classList.contains('hidden'))refreshPresence();}
+}
+function chatPoll(){
+  if(chatBusy||!session||$('chatModal').style.display==='none')return;
+  chatBusy=true;var who=chatWith;
+  api('chatPoll',{'with':chatWith,since:chatLast,mark:1},true).then(function(res){
+    chatBusy=false;
+    if(who!==chatWith||$('chatModal').style.display==='none')return;
+    if(!res||!res.success){if(res&&res.message)$('chatSub').textContent=res.message;return;}
+    if(isAdmin())$('chatSub').textContent=res.online?'🟢 Đang online':('⚪ Offline '+(res.agoSec!=null?fmtAgo(res.agoSec):'(chưa từng vào)')+' • tin nhắn được giữ lại, nhân viên đọc khi mở app');
+    else $('chatSub').textContent='Tin nhắn được lưu lại, quản trị viên sẽ trả lời khi online.';
+    renderMsgs(res.messages||[]);
+  });
+}
+function renderMsgs(list){
+  var box=$('chatList');
+  var near=(box.scrollHeight-box.scrollTop-box.clientHeight)<80||!box.children.length;
+  list.forEach(function(m){
+    if(chatSeen[m.id])return;chatSeen[m.id]=1;
+    if(m.id>chatLast)chatLast=m.id;
+    var mine=isAdmin()?(m.dir==='A'):(m.dir==='U');
+    var d=document.createElement('div');d.className='cmsg '+(mine?'cme':'cthem');
+    d.appendChild(document.createTextNode(m.text));
+    var sm=document.createElement('small');sm.textContent=(isAdmin()&&mine?m.from+' • ':'')+m.time;
+    d.appendChild(sm);box.appendChild(d);
+  });
+  if(near)box.scrollTop=box.scrollHeight;
+}
+function sendChat(){
+  var t=$('chatInput').value.trim();if(!t||!session)return;
+  $('chatSendBtn').disabled=true;
+  api('chatSend',{to:chatWith,text:t},true).then(function(res){
+    $('chatSendBtn').disabled=false;
+    if(!res||!res.success){alert((res&&res.message)||'Không gửi được tin nhắn.');return;}
+    $('chatInput').value='';chatBusy=false;chatPoll();
+  });
+}
+// --- admin duyệt đề xuất cửa hàng ---
+function loadPending(quiet){
+  var box=$('pendList');if(!quiet)box.textContent='Đang tải...';
+  api('listPending').then(function(res){
+    if(!res||!res.success){box.innerHTML='<span class="error">'+esc((res&&res.message)||'Lỗi tải đề xuất')+'</span>';return;}
+    box.innerHTML='';
+    if(!res.items.length){box.textContent='Không có đề xuất nào đang chờ.';return;}
+    res.items.forEach(function(it){
+      var d=document.createElement('div');d.className='req-row';
+      var q=String(it.coord||'').trim().split(/\s+/).join(',');
+      var info=document.createElement('div');
+      info.innerHTML='<b>'+esc(it.name)+'</b><div class="hint" style="margin:0">'+esc(it.address||'(chưa có địa chỉ)')+'<br>Gửi bởi '+esc(it.sender)+' • '+esc(it.time)+'<br>'+
+        '<a href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q)+'" target="_blank" rel="noopener">📍 Xem vị trí</a>'+
+        (it.photo?' &nbsp; <a href="'+esc(it.photo)+'" target="_blank" rel="noopener">🖼️ Xem ảnh</a>':'')+'</div>';
+      var btns=document.createElement('div');btns.className='row';
+      var ok=document.createElement('button');ok.className='btn-small btn-green';ok.textContent='✅ Duyệt';
+      var no=document.createElement('button');no.className='btn-small btn-red';no.textContent='❌ Từ chối';
+      ok.onclick=function(){
+        ok.disabled=no.disabled=true;adminMsg('Đang duyệt...');
+        api('approvePending',{row:it.row},true).then(function(r){adminMsg((r&&r.message)||'',r&&r.success?'ok':'error');loadPending(true);hbOnce();});
+      };
+      no.onclick=function(){
+        var reason=prompt('Lý do từ chối (có thể bỏ trống):');if(reason===null)return;
+        ok.disabled=no.disabled=true;adminMsg('Đang từ chối...');
+        api('rejectPending',{row:it.row,reason:reason},true).then(function(r){adminMsg((r&&r.message)||'',r&&r.success?'ok':'error');loadPending(true);hbOnce();});
+      };
+      btns.appendChild(ok);btns.appendChild(no);
+      d.appendChild(info);d.appendChild(btns);box.appendChild(d);
+    });
+  });
+}
+syncHb();
 </script>
 <button id="aboutBtn" onclick="openAbout()" style="position:fixed;right:6px;bottom:2px;font-size:10px;opacity:.45;z-index:5;background:none;border:none;box-shadow:none;padding:0;margin:0;width:auto;min-width:0;color:inherit;font-weight:400;text-transform:none">ℹ️ Thông tin</button>
 <div id="verTag" style="position:fixed;left:6px;bottom:2px;font-size:10px;opacity:.45;pointer-events:none;z-index:5">bản: v9</div>
