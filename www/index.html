@@ -425,17 +425,25 @@ function api(action, params, post){
   var payload = Object.assign(base, params||{});
   return devReady.then(function(){
     payload.dev = JSON.stringify(devInfo);
+    var ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
+    var tId = ctrl ? setTimeout(function(){ctrl.abort();}, 15000) : null;
+    var req;
     if(post){
       // text/plain để tránh preflight CORS với Apps Script
-      return fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
+      req = fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload),signal:ctrl?ctrl.signal:undefined});
+    } else {
+      var qs = Object.keys(payload).filter(function(k){return payload[k]!==undefined&&payload[k]!==null;}).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(payload[k]);}).join('&');
+      req = fetch(API+'?'+qs,{signal:ctrl?ctrl.signal:undefined});
     }
-    var qs = Object.keys(payload).filter(function(k){return payload[k]!==undefined&&payload[k]!==null;}).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(payload[k]);}).join('&');
-    return fetch(API+'?'+qs);
+    return req.finally(function(){if(tId)clearTimeout(tId);});
   }).then(function(r){return r.json();}).then(function(res){
     if(res && res.authFail && session){ if(res.expired||res.wipe)playSound('expired'); if(res.wipe)wipeApp(res.message); else logout(res.message); }
     else if(res && res.mustChange && session){ session.mustChange=true; saveSession(); showView(); }
     return res;
-  }).catch(function(e){return {success:false,message:'Không kết nối được máy chủ. Kiểm tra mạng. ('+e.message+')'};});
+  }).catch(function(e){
+    var isAbort = e && (e.name==='AbortError');
+    return {success:false,message:isAbort?'Máy chủ phản hồi chậm, vui lòng thử lại.':('Không kết nối được máy chủ. Kiểm tra mạng. ('+e.message+')')};
+  });
 }
 
 // ---------- ĐĂNG NHẬP / PHÂN QUYỀN ----------
@@ -666,7 +674,7 @@ function primeGps(){
 // dừng khi đạt target (mét) hoặc đạt quickAcc nếu có đặt.
 function locate(o){
   o=o||{};
-  var target=o.target||25, maxWait=o.maxWait||15000, quick=o.quickAcc||0;
+  var target=o.target||25, maxWait=o.maxWait||8000, quick=o.quickAcc||0;
   return new Promise(function(resolve,reject){
     var G=capGeo(), best=null, done=false, id=null, timer=null, started=Date.now();
     function cleanup(){
@@ -735,7 +743,7 @@ function startGate(){
   gateOk=true;showView();          // vào app ngay, GPS tự động lấy ngầm
   setGpsUi(false,'loading');
   $('gpsRefreshBtn').classList.add('hidden');
-  locateSafe({target:25,quickAcc:100,maxWait:12000,onProgress:function(acc,secs){
+  locateSafe({target:25,quickAcc:100,maxWait:7000,onProgress:function(acc,secs){
     $('gpsText').textContent='📡 Đang dò GPS... sai số ~'+Math.round(acc)+'m';
   }}).then(function(p){
     setUserPos(p);
@@ -759,7 +767,7 @@ function showPosDetail(p){
   });
 }
 function refineQuiet(){
-  locateSafe({target:25,maxWait:10000}).then(function(p){
+  locateSafe({target:25,maxWait:6000}).then(function(p){
     if(!userPos||p.acc<userPos.acc||Date.now()-userPos.time>30000)setUserPos(p);
   }).catch(function(){});
 }
@@ -775,7 +783,7 @@ function setUserPos(p){
 function ensureFreshPos(force){
   return new Promise(function(resolve){
     if(!force&&userPos&&Date.now()-userPos.time<90000){resolve(true);return;}
-    locateSafe({target:25,quickAcc:force?0:100,maxWait:10000}).then(function(p){
+    locateSafe({target:25,quickAcc:force?0:100,maxWait:6000}).then(function(p){
       setUserPos(p);resolve(true);
     }).catch(function(msg){
       setGpsUi(false,msg);$('status').innerHTML='<span class="error">'+esc(msg)+'</span>';resolve(false);
@@ -892,8 +900,8 @@ function nearbyMe(){
       $('searchBtn').disabled=false;lastSid=res.sid||'';
       if(res.success){playSound('found');$('status').textContent='Cửa hàng gần bạn nhất:';showResults(res.results,'sheet');}
       else{playSound('error');$('status').innerHTML='<span class="error">'+esc(res.message)+'</span>';}
-      loadGoogleNearby(userPos.lat,userPos.lng);
     });
+    loadGoogleNearby(userPos.lat,userPos.lng);   // chạy song song, không chờ kết quả "nearby" xong mới gọi
   });
 }
 // ----- Cửa hàng tạp hoá do Google Maps đề xuất (hiện riêng ở cuối danh sách) -----
@@ -1091,7 +1099,7 @@ function getMyLocation(){
   stopGps();
   if(!isNativeApp()&&!isAdmin()){addMsg('Bản web không chống được GPS giả nên không cho lấy vị trí máy để thêm cửa hàng. Hãy dùng app APK, hoặc nhập toạ độ tay.','error');return;}
   var G=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Geolocation;
-  var TARGET=10, MAXWAIT=30000, best=null;
+  var TARGET=15, MAXWAIT=12000, best=null;
   var token={id:null,G:G||null,timer:null};
   gpsWatch=token;
   addMsg('Đang dò GPS... hãy đứng ngoài trời, gần cửa hàng.');
