@@ -1101,6 +1101,13 @@ function stopGps(){
 function getMyLocation(){
   stopGps();
   if(!isNativeApp()&&!isAdmin()){addMsg('Bản web không chống được GPS giả nên không cho lấy vị trí máy để thêm cửa hàng. Hãy dùng app APK, hoặc nhập toạ độ tay.','error');return;}
+  // Đã có sẵn vị trí hiển thị ở "📡 Vị trí của bạn" (đã qua kiểm tra GPS giả) -> dùng luôn, không dò lại cho nhanh, đỡ treo.
+  if(userPos&&typeof userPos.lat==='number'&&typeof userPos.lng==='number'){
+    setCoord(userPos.lat,userPos.lng,userPos.acc);
+    var ua=Math.round(userPos.acc);
+    addMsg('✅ Đã lấy vị trí hiện tại (sai số ~'+ua+'m).',ua<=50?'ok':'error');
+    return;
+  }
   var G=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Geolocation;
   var TARGET=15, MAXWAIT=12000, best=null;
   var token={id:null,G:G||null,timer:null};
