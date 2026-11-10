@@ -603,7 +603,7 @@ function getEnabler(){
 }
 // APK: tự hiện hộp thoại "Bật vị trí" của Google (bấm OK là xong) rồi xin quyền vị trí.
 // Trả về 'ok' | 'off' (người dùng từ chối bật) | 'denied' (từ chối quyền)
-var nativeOkCache=false;
+var nativeOkCache=false, enablerAsked=false;
 function nativeReady(){
   var G=capGeo();
   if(!G||nativeOkCache)return Promise.resolve('ok');
@@ -616,7 +616,8 @@ function nativeReady(){
     if(v==='ok'){ nativeOkCache=true; if(sndPending==='gps')sndPending=null; if(sndCur&&sndCur===sndObj.gps)stopSound(); }   // đã bật xong: tắt tiếng
     return v;
   }
-  var E=getEnabler();
+  var E=enablerAsked?null:getEnabler();
+  enablerAsked=true;   // chỉ hỏi bật vị trí 1 lần mỗi phiên, không lặp hộp thoại
   var step1=E?E.enable().then(function(r){return (r&&r.enabled)?'ok':'off';}).catch(function(){return 'ok';}):Promise.resolve('ok');
   return step1.then(function(s){
     if(s==='off')return 'off';
@@ -1764,5 +1765,6 @@ function revokeUser(email){
   document.addEventListener('visibilitychange',function(){if(!document.hidden)check();});
 })();
 </script>
+<div id="verTag" style="position:fixed;left:6px;bottom:2px;font-size:10px;opacity:.45;pointer-events:none;z-index:5">bản: v3-khong-chan-gps</div>
 </body>
 </html>
