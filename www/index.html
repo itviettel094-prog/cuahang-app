@@ -148,8 +148,7 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
   <!-- ĐĂNG NHẬP -->
   <div id="loginView" class="hidden center">
     <div class="login-card">
-      <h2>ĐĂNG NHẬP</h2>
-      <div style="text-align:right;margin:-4px 0 4px"><button class="btn-link" onclick="openAbout()">ℹ️ Thông tin</button></div>
+      <h2>ĐĂNG NHẬP VÀO HỆ THỐNG</h2>
       <label>Email</label>
       <input type="email" id="loginEmail" placeholder="ten@gmail.com" autocapitalize="none" autocomplete="username" oninput="onEmailInput()" />
       <label id="loginCodeLabel">Mã truy cập</label>
@@ -158,13 +157,13 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
       <div id="loginStatus" style="margin:10px 0;font-size:14px"></div>
       <div class="row">
         <button id="loginBtn" onclick="doLogin()" style="flex:1">Đăng nhập</button>
-        <button id="reqBtn" class="btn-orange btn-req" onclick="requestCode()" disabled>📨 Gửi yêu cầu cấp mã</button>
+        <button id="reqBtn" class="btn-orange btn-req" onclick="requestCode()" disabled style="display:none">ĐĂNG KÝ</button>
       </div>
-      <div class="hint" style="text-align:center;margin-top:10px">Nhập địa chỉ Gmail cá nhân của bạn vào và bấm "Gửi yêu cầu cấp mã" nếu chưa có tài khoản.</div>
+      <div class="hint" style="text-align:center;margin-top:10px">Nhập địa chỉ Gmail cá nhân của bạn vào và bấm ĐĂNG KÝ nếu chưa có tài khoản.</div>
       <div class="about">
-        <b>Tìm cửa hàng</b> • Phiên bản 1.0<br>
+        <b>App hỗ trợ tìm cửa hàng</b> • Phiên bản <span id="loginVer">1.0</span><br>
         Phần mềm được phát triển bởi <b>IT Team Trần Thị Dung</b>.<br>
-        Phần mềm nội bộ, chỉ dành cho nhân viên được cấp quyền.<br>
+        Phần mềm chỉ sử dụng cho mục đích nội bộ, dành cho nhân viên được cấp quyền.<br>
         © 2026 IT Team Trần Thị Dung. Bảo lưu mọi quyền.
       </div>
     </div>
@@ -217,7 +216,7 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
     <h2 class="app-title">TÌM KIẾM VỊ TRÍ CÁC CỬA HÀNG</h2>
     <div class="topbar">
       <div class="who"><span id="whoAmI"></span><div id="expInfo" style="margin-top:2px"></div></div>
-      <div><button class="btn-link" onclick="openAbout()">ℹ️ Thông tin</button> <button class="btn-link" onclick="logout()">Đăng xuất</button></div>
+      <div><button class="btn-link" onclick="logout()">Đăng xuất</button></div>
     </div>
     <p class="subtitle">Tìm theo tên cửa hàng hoặc toạ độ. Cửa hàng gần bạn nhất sẽ hiện lên đầu.</p>
     <div class="gps-bar"><div style="flex:1;min-width:0"><span id="gpsText">📡 Đang lấy vị trí...</span><div id="gpsDetail" class="gps-detail hidden"></div></div><button id="gpsRefreshBtn" class="btn-link hidden" onclick="refreshPos()">🔄 Cập nhật</button></div>
@@ -502,11 +501,12 @@ function setLoginState(st){
   $('loginCode').placeholder=isPw?'Mật khẩu của bạn':'Mã truy cập do quản trị viên cấp';
   $('loginCode').setAttribute('autocapitalize',isPw?'none':'characters');
   $('loginHint').textContent=st==='pending'?'Bạn đã được cấp mã. Đăng nhập lần đầu bằng mã này, sau đó bạn sẽ đặt mật khẩu mới.':
-    (st==='password'?'Quên mật khẩu? Bấm "Gửi yêu cầu cấp mã" để xin cấp lại.':'');
+    (st==='password'?'Quên mật khẩu? Liên hệ quản trị viên để được cấp lại.':'');
 }
 function onEmailInput(){
   var e=$('loginEmail').value.trim().toLowerCase();
   $('reqBtn').disabled=!validEmail(e);
+  $('reqBtn').style.display='none'; // chỉ hiện khi đã kiểm tra xong và email chưa có trên hệ thống
   clearTimeout(emailTimer);
   if(!validEmail(e)){emailChecked='';setLoginState('none');return;}
   if(e===emailChecked)return;
@@ -515,13 +515,15 @@ function onEmailInput(){
       if($('loginEmail').value.trim().toLowerCase()!==e)return; // email đã đổi trong lúc chờ
       emailChecked=e;
       setLoginState(res&&res.success?res.state:'none');
+      // chỉ email MỚI (chưa có trên hệ thống) mới hiện nút ĐĂNG KÝ
+      $('reqBtn').style.display=(res&&res.success&&res.state==='none')?'':'none';
     });
   },450);
 }
 function requestCode(){
   var e=$('loginEmail').value.trim().toLowerCase();
-  if(!validEmail(e)){$('loginStatus').innerHTML='<span class="error">Nhập email hợp lệ trước khi gửi yêu cầu.</span>';return;}
-  $('reqBtn').disabled=true;$('loginStatus').textContent='Đang gửi yêu cầu...';
+  if(!validEmail(e)){$('loginStatus').innerHTML='<span class="error">Nhập email hợp lệ trước khi đăng ký.</span>';return;}
+  $('reqBtn').disabled=true;$('loginStatus').textContent='Đang đăng ký...';
   api('requestCode',{email:e},true).then(function(res){
     $('loginStatus').innerHTML='<span class="'+(res.success?'ok':'error')+'">'+esc(res.message||'')+'</span>';
     setTimeout(function(){$('reqBtn').disabled=!validEmail($('loginEmail').value.trim());},res.success?8000:1500);
@@ -1786,13 +1788,13 @@ function revokeUser(email){
 })();
 </script>
 <div id="aboutModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.45);align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)closeAbout()">
-  <div style="background:var(--gbg,#f3fbf5);color:var(--gtxt,#175c2a);border:1px solid var(--gbd,#bfe3c9);border-radius:18px;max-width:420px;width:100%;max-height:85vh;overflow:auto;padding:18px 18px 14px;box-shadow:0 10px 30px rgba(0,0,0,.25)">
+  <div style="background:var(--gbg,#f3fbf5);color:var(--gtxt,#175c2a);border:1px solid var(--gbd,#bfe3c9);border-radius:18px;max-width:420px;width:100%;max-height:85vh;overflow:auto;padding:18px 18px 14px;box-shadow:0 10px 30px rgba(0,0,0,.25);text-align:center">
     <h3 id="aboutName" style="margin:0 0 4px;font-size:18px"></h3>
     <div id="aboutVer" style="font-size:13px;color:var(--gmut,#5f7f68);margin-bottom:12px"></div>
     <div id="aboutRows" style="font-size:14px;line-height:1.6"></div>
     <div id="aboutNote" style="font-size:13px;color:var(--gmut,#5f7f68);margin-top:10px;white-space:pre-line"></div>
     <div id="aboutCopy" style="font-size:12px;color:var(--gmut,#5f7f68);margin-top:12px;padding-top:10px;border-top:1px solid var(--gbd,#bfe3c9)"></div>
-    <div style="text-align:right;margin-top:14px"><button class="btn-small" onclick="closeAbout()">Đóng</button></div>
+    <div style="text-align:center;margin-top:14px"><button class="btn-small" onclick="closeAbout()">Đóng</button></div>
   </div>
 </div>
 <script>
@@ -1832,7 +1834,37 @@ function openAbout(){
   document.getElementById('aboutModal').style.display='flex';
 }
 function closeAbout(){document.getElementById('aboutModal').style.display='none';}
+function syncLoginVer(){
+  var e=document.getElementById('loginVer'),vt=document.getElementById('verTag');
+  if(e&&APP_INFO.version)e.textContent=APP_INFO.version+(vt?' ('+vt.textContent.replace('bản: ','')+')':'');
+}
+window.addEventListener('load',syncLoginVer);
 </script>
+<style>
+.pwwrap{position:relative;display:block}
+.pwwrap input{padding-right:46px!important}
+#loginView .pwwrap .pw-eye,#pwView .pwwrap .pw-eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:40px;height:36px;min-width:0;padding:0;margin:0;border:none;box-shadow:none;background:none;color:inherit;font-size:20px;line-height:1;cursor:pointer;opacity:.75}
+#loginView .pwwrap .pw-eye:active,#pwView .pwwrap .pw-eye:active{opacity:1}
+</style>
+<script>
+(function(){
+  ['loginCode','newPw','newPw2'].forEach(function(id){
+    var inp=document.getElementById(id);
+    if(!inp||inp.parentNode.className==='pwwrap')return;
+    var w=document.createElement('div');w.className='pwwrap';
+    inp.parentNode.insertBefore(w,inp);w.appendChild(inp);
+    var b=document.createElement('button');
+    b.type='button';b.className='pw-eye';b.textContent='👁️';b.setAttribute('aria-label','Hiện/ẩn mật khẩu');
+    b.addEventListener('click',function(){
+      var show=inp.type==='password';
+      inp.type=show?'text':'password';
+      b.textContent=show?'🙈':'👁️';
+    });
+    w.appendChild(b);
+  });
+})();
+</script>
+<button id="aboutBtn" onclick="openAbout()" style="position:fixed;right:6px;bottom:2px;font-size:10px;opacity:.45;z-index:5;background:none;border:none;box-shadow:none;padding:0;margin:0;width:auto;min-width:0;color:inherit;font-weight:400;text-transform:none">ℹ️ Thông tin</button>
 <div id="verTag" style="position:fixed;left:6px;bottom:2px;font-size:10px;opacity:.45;pointer-events:none;z-index:5">bản: v9</div>
 </body>
 </html>
