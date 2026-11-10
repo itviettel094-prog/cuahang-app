@@ -269,6 +269,13 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
       <div id="pendList"></div>
       <label>Yêu cầu chờ cấp mã</label>
       <div id="reqList"></div>
+      <label>📍 Vị trí nhân viên trực tiếp</label>
+      <div class="row">
+        <button class="btn-small btn-green" onclick="toggleLive()" id="liveBtn">🗺️ Mở bản đồ</button>
+        <button class="btn-small hidden" id="liveRefresh" onclick="loadLive()">↻ Làm mới</button>
+      </div>
+      <div id="liveInfo" class="hint"></div>
+      <div id="liveMap" class="hidden" style="height:380px;margin-top:8px;border-radius:8px;overflow:hidden"></div>
       <label>Danh sách nhân viên</label>
       <div id="userList"></div>
 
@@ -1705,6 +1712,11 @@ function loadUsers(){
         b2.onclick=function(){revokeUser(u.email);};
         btns.appendChild(b2);
       }
+      if(u.status==='active'){
+        var bl=document.createElement('button');bl.className='btn-small';bl.textContent='📍 Vị trí';
+        bl.onclick=function(){focusLive(u.email);};
+        btns.appendChild(bl);
+      }
       d.appendChild(info);d.appendChild(btns);d.appendChild(panel);box.appendChild(d);
     });
   });
@@ -1914,13 +1926,15 @@ function setChatBtn(b,n){
 var hbTimer=null;
 function hbOnce(off){
   if(!session||session.mustChange)return Promise.resolve();
-  return api('hb',off?{off:1}:{},true).then(function(res){
+  var hp=off?{off:1}:{};
+  if(!off&&!isAdmin()&&userPos&&Date.now()-(userPos.time||0)<120000){hp.lat=userPos.lat;hp.lng=userPos.lng;hp.acc=Math.round(userPos.acc);hp.pt=userPos.time;}
+  return api('hb',hp,true).then(function(res){
     if(off||!res||!res.success||!session)return;
     var cb=$('chatBadge'),ab=$('adminBadge');
     if(isAdmin()){
       var t=(res.unread?'💬'+res.unread:'')+(res.pending?' 📝'+res.pending:'');
       ab.textContent=t.trim();ab.style.display=t?'inline-block':'none';
-      if(!$('adminSection').classList.contains('hidden')){refreshPresence();loadPending(true);}
+      if(!$('adminSection').classList.contains('hidden')){refreshPresence();loadPending(true);if(liveOpen)loadLive(true);}
     } else {
       cb.textContent=res.unread||'';cb.style.display=res.unread?'inline-block':'none';
     }
@@ -1939,6 +1953,70 @@ logout=function(msg){
   _logout(msg);
 };
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')hbOnce();});
+
+// ================= BẢN ĐỒ VỊ TRÍ TRỰC TIẾP (CHỈ ADMIN) =================
+var liveOpen=false, liveMap=null, liveLayer=null, liveData=[], liveFocus='';
+function loadLeaflet(){
+  if(window.L)return Promise.resolve();
+  return new Promise(function(ok,bad){
+    var l=document.createElement('link');l.rel='stylesheet';l.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';document.head.appendChild(l);
+    var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+    s.onload=ok;s.onerror=function(){bad(new Error('Không tải được thư viện bản đồ.'));};document.head.appendChild(s);
+  });
+}
+function toggleLive(){
+  if(!isAdmin())return;
+  liveOpen=!liveOpen;
+  $('liveMap').classList.toggle('hidden',!liveOpen);
+  $('liveRefresh').classList.toggle('hidden',!liveOpen);
+  $('liveBtn').textContent=liveOpen?'🗺️ Đóng bản đồ':'🗺️ Mở bản đồ';
+  if(liveOpen)loadLive();
+}
+function focusLive(email){
+  if(!isAdmin())return;
+  liveFocus=email;
+  if(!liveOpen)toggleLive();else loadLive();
+  $('liveMap').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function loadLive(silent){
+  if(!isAdmin()||!liveOpen)return;
+  if(!silent)$('liveInfo').textContent='Đang tải vị trí...';
+  Promise.all([loadLeaflet(),api('liveLocations',{},true)]).then(function(arr){
+    var res=arr[1];
+    if(!res||!res.success){$('liveInfo').innerHTML='<span class="error">'+esc((res&&res.message)||'Lỗi tải vị trí.')+'</span>';return;}
+    liveData=res.locations||[];
+    drawLive();
+  }).catch(function(e){$('liveInfo').innerHTML='<span class="error">'+esc(e.message)+'</span>';});
+}
+function drawLive(){
+  var box=$('liveMap');
+  if(!liveMap){
+    liveMap=L.map(box).setView([21.0285,105.8542],12);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(liveMap);
+    liveLayer=L.layerGroup().addTo(liveMap);
+  }
+  setTimeout(function(){liveMap.invalidateSize();},50);
+  liveLayer.clearLayers();
+  var pts=[],focusPt=null,on=0;
+  liveData.forEach(function(x){
+    if(typeof x.lat!=='number'||typeof x.lng!=='number')return;
+    if(x.online)on++;
+    var col=x.online?'#188038':'#80868b';
+    var m=L.circleMarker([x.lat,x.lng],{radius:9,color:'#fff',weight:2,fillColor:col,fillOpacity:1}).addTo(liveLayer);
+    if(x.acc>0&&x.acc<2000)L.circle([x.lat,x.lng],{radius:x.acc,color:col,weight:1,fillOpacity:0.08}).addTo(liveLayer);
+    var gm='https://www.google.com/maps/search/?api=1&query='+x.lat+','+x.lng;
+    m.bindPopup('<b>'+esc(x.email)+'</b><br>'+(x.online?'🟢 Online':'⚪ Offline')+' • '+esc(fmtAgo(x.agoSec))+'<br>Sai số ~'+x.acc+'m<br><a href="'+gm+'" target="_blank" rel="noopener">Mở Google Maps</a>');
+    m.bindTooltip(x.email.split('@')[0],{permanent:true,direction:'top',offset:[0,-8]});
+    pts.push([x.lat,x.lng]);
+    if(x.email===liveFocus){focusPt=[x.lat,x.lng];m.openPopup();}
+  });
+  if(focusPt)liveMap.setView(focusPt,17);
+  else if(pts.length===1)liveMap.setView(pts[0],16);
+  else if(pts.length>1&&!liveMap._fitDone){liveMap.fitBounds(pts,{padding:[30,30]});liveMap._fitDone=true;}
+  if(liveFocus&&!focusPt)$('liveInfo').textContent='Chưa có vị trí của '+liveFocus+' (chưa mở app hoặc chưa cho phép định vị).';
+  else $('liveInfo').textContent=pts.length?('Có vị trí '+pts.length+' nhân viên • '+on+' đang online • tự làm mới 30 giây'):'Chưa có nhân viên nào báo vị trí.';
+  liveFocus='';
+}
 function refreshPresence(){
   if(!isAdmin())return;
   api('listUsers').then(function(res){
