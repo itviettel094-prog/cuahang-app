@@ -18,6 +18,9 @@ jobs:
   # ===== 1. Build file APK cho Android =====
   apk:
     runs-on: ubuntu-latest
+    env:
+      APP_NAME: "Tìm cửa hàng"   # Tên hiện dưới biểu tượng + trong Cài đặt > Ứng dụng
+      VERSION_BASE: "1.0"        # Phiên bản = 1.0.<số lần build>, ví dụ 1.0.12
     steps:
       - uses: actions/checkout@v4
 
@@ -49,6 +52,21 @@ jobs:
           M=android/app/src/main/AndroidManifest.xml
           sed -i 's|<application|<uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n    <application|' $M
           grep -n "uses-permission" $M
+
+      - name: Đặt tên app + số phiên bản
+        run: |
+          VER="${VERSION_BASE}.${{ github.run_number }}"
+          S=android/app/src/main/res/values/strings.xml
+          sed -i "s|<string name=\"app_name\">[^<]*</string>|<string name=\"app_name\">${APP_NAME}</string>|" $S
+          sed -i "s|<string name=\"title_activity_main\">[^<]*</string>|<string name=\"title_activity_main\">${APP_NAME}</string>|" $S
+          G=android/app/build.gradle
+          sed -i "s/versionCode [0-9][0-9]*/versionCode ${{ github.run_number }}/" $G
+          sed -i "s/versionName \"[^\"]*\"/versionName \"${VER}\"/" $G
+          # đồng bộ số phiên bản vào trang "Thông tin" trong app
+          sed -i "s/version:'[0-9][0-9.]*'/version:'${VER}'/" www/index.html
+          grep -n "app_name\|title_activity_main" $S
+          grep -n "versionCode\|versionName" $G
+          grep -n "version:'" www/index.html
 
       - name: Đồng bộ web vào Android
         run: npx cap sync android
