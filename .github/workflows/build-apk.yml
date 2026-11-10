@@ -62,11 +62,15 @@ jobs:
           G=android/app/build.gradle
           sed -i "s/versionCode [0-9][0-9]*/versionCode ${{ github.run_number }}/" $G
           sed -i "s/versionName \"[^\"]*\"/versionName \"${VER}\"/" $G
-          # đồng bộ số phiên bản vào trang "Thông tin" trong app
-          sed -i "s/version:'[0-9][0-9.]*'/version:'${VER}'/" www/index.html
-          grep -n "app_name\|title_activity_main" $S
-          grep -n "versionCode\|versionName" $G
-          grep -n "version:'" www/index.html
+          grep -n "app_name\|title_activity_main" $S || true
+          grep -n "versionCode\|versionName" $G || true
+          # đồng bộ số phiên bản vào trang "Thông tin" trong app (không có thì chỉ cảnh báo, không làm hỏng build)
+          if [ -f www/index.html ]; then
+            sed -i "s/version:'[0-9][0-9.]*'/version:'${VER}'/" www/index.html
+            grep -n "version:'" www/index.html || echo "CẢNH BÁO: www/index.html không có dòng version:'...' nên không cập nhật được số phiên bản trong app"
+          else
+            echo "CẢNH BÁO: không tìm thấy www/index.html"
+          fi
 
       - name: Đồng bộ web vào Android
         run: npx cap sync android
