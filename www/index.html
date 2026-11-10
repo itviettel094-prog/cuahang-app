@@ -637,13 +637,8 @@ function logAdminFake(g){
   logEvt('GPS_GIA_ADMIN',{note:'Admin dùng vị trí giả (được phép)'+((g.mockApps&&g.mockApps.length)?' | '+g.mockApps.join('; '):'')});
 }
 // Hỏi Android: vị trí hiện tại có bị gắn cờ "mock" không. Bản APK cũ chưa có plugin -> coi như không biết (không chặn).
-function guardCheck(){
-  var g=getGuard();if(!g)return Promise.resolve({mock:false});
-  var call=g.check().then(function(r){guardInfo=r||{};return guardInfo;}).catch(function(){return {mock:false};});
-  // chốt chặn: nếu native không trả lời trong 5s thì bỏ qua, tuyệt đối không để UI chờ vô hạn
-  var guard=new Promise(function(res){setTimeout(function(){res({mock:false,timeout:true});},5000);});
-  return Promise.race([call,guard]);
-}
+// Đã TẮT chống GPS giả: không gọi plugin native nữa (tránh treo/đơ), luôn coi như không phải vị trí giả.
+function guardCheck(){ return Promise.resolve({mock:false}); }
 function locateSafe(o){
   return locate(o).then(function(p){
     return guardCheck().then(function(g){
@@ -750,7 +745,7 @@ function startGate(){
     $('gpsText').textContent='📡 Đang dò GPS... sai số ~'+Math.round(acc)+'m';
   }}).then(function(p){
     setUserPos(p);
-    if(p.acc>25)refineQuiet();
+    if(p.acc>25&&!(guardInfo&&guardInfo.mock))refineQuiet();   // đang giả vị trí (admin): không dò ngầm lại, tránh quét chồng gây treo
   }).catch(function(msg){ setGpsUi(false,msg); });
 }
 var geoLast=null;
@@ -799,7 +794,7 @@ function refreshPos(){
   ensureFreshPos(true);
 }
 document.addEventListener('visibilitychange',function(){
-  if(document.visibilityState==='visible'&&session&&gateOk&&(!userPos||Date.now()-userPos.time>60000))ensureFreshPos(false);
+  if(document.visibilityState==='visible'&&session&&gateOk&&(!userPos||(Date.now()-userPos.time>60000&&!(guardInfo&&guardInfo.mock))))ensureFreshPos(false);
 });
 
 // ---------- TIỆN ÍCH KHOẢNG CÁCH / CHỈ ĐƯỜNG ----------
