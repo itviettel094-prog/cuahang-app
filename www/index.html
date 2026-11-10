@@ -42,6 +42,7 @@ button:active{opacity:.85}button:disabled{background:#9aa0a6}
 .coord-display{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:10px 14px;margin-bottom:10px}
 .coord-value{font-family:Consolas,'Courier New',monospace;font-weight:600}
 iframe{width:100%;height:320px;border:0;border-radius:10px}
+#googleList,#mapSection{display:none!important}   /* ẩn: 'Cửa hàng do Google đề xuất' và khối toạ độ/Copy/Chỉ đường chung */
 .map-link{display:inline-block;margin-top:10px;padding:10px 16px;background:#34a853;color:#fff;text-decoration:none;border-radius:8px;font-size:14px}
 label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
 .hint{font-size:12px;color:#5f6368;margin-top:4px}
@@ -869,6 +870,7 @@ function showResults(results,source){
     p.dUser=(userPos&&typeof p.lat==='number'&&typeof p.lng==='number')?distM(userPos.lat,userPos.lng,p.lat,p.lng):null;
   });
   currentResults=results;renderResults(results,source);selectResult(0);
+  showMapsSearchBtn();   // nút cuối danh sách
   if(userPos)logEvt('SAU_TIM',{sid:lastSid,q:lastQ,count:results.length,lat:userPos.lat,lng:userPos.lng,acc:Math.round(userPos.acc),pt:userPos.time});
 }
 function doSearch(){
@@ -905,7 +907,6 @@ function nearbyMe(){
       if(res.success){playSound('found');$('status').textContent='Cửa hàng gần bạn nhất:';showResults(res.results,'sheet');}
       else{playSound('error');$('status').innerHTML='<span class="error">'+esc(res.message)+'</span>';}
     });
-    loadGoogleNearby(userPos.lat,userPos.lng);   // chạy song song, không chờ kết quả "nearby" xong mới gọi
   });
 }
 // ----- Cửa hàng tạp hoá do Google Maps đề xuất (hiện riêng ở cuối danh sách) -----
@@ -1765,6 +1766,6 @@ function revokeUser(email){
   document.addEventListener('visibilitychange',function(){if(!document.hidden)check();});
 })();
 </script>
-<div id="verTag" style="position:fixed;left:6px;bottom:2px;font-size:10px;opacity:.45;pointer-events:none;z-index:5">bản: v3-khong-chan-gps</div>
+<div id="verTag" style="position:fixed;left:6px;bottom:2px;font-size:10px;opacity:.45;pointer-events:none;z-index:5">bản: v4</div>
 </body>
 </html>
