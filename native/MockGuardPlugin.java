@@ -26,10 +26,18 @@ import com.google.android.gms.location.Priority;
 import com.google.android.gms.tasks.CancellationTokenSource;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Chống GPS giả: lấy 1 vị trí mới và đọc cờ "mock" do Android gắn (isMock / isFromMockProvider),
  * đồng thời liệt kê app cài trên máy có khai báo quyền ACCESS_MOCK_LOCATION (app giả GPS) để ghi nhật ký.
+ *
+ * QUAN TRỌNG: việc quét toàn bộ app cài trên máy (getInstalledPackages) có thể mất
+ * hàng trăm mili-giây đến vài giây tuỳ số lượng app trên máy, và nếu chạy trên UI thread
+ * sẽ gây "đơ/treo" cả app (ANR). Toàn bộ phần quét này được đẩy ra 1 thread nền riêng
+ * (bgExecutor), callback vị trí (location) vốn đã chạy trên UI thread chỉ dùng để lấy
+ * toạ độ rồi giao việc nặng cho thread nền, không tự xử lý trực tiếp.
  */
 @CapacitorPlugin(name = "MockGuard")
 public class MockGuardPlugin extends Plugin {
@@ -38,6 +46,16 @@ public class MockGuardPlugin extends Plugin {
     // Hàm này chạy SAU KHI JS đã có vị trí (locate() ở index.html), nên đây là độ trễ CỘNG THÊM
     // vào mỗi lần locateSafe(). Giảm từ 8000 -> 3000 để tránh "đơ" kéo dài khi tín hiệu GPS yếu.
     private static final long CHECK_TIMEOUT_MS = 3000;
+
+    // 1 luồng nền riêng, dùng chung cho mọi lượt gọi check() để không tạo/huỷ thread liên tục.
+    private final ExecutorService bgExecutor = Executors.newSingleThreadExecutor();
+
+    // Cache danh sách app "mock location" trong 20 giây: quét app cài trên máy không đổi
+    // liên tục trong 1 phiên sử dụng, nên không cần quét lại mỗi lần bấm nút.
+    private static final long CACHE_MS = 20000;
+    private long cacheTime = 0;
+    private JSArray cacheAppOps = null;
+    private JSArray cacheLegacy = null;
 
     @SuppressWarnings("deprecation")
     private static boolean isMock(Location l) {
@@ -121,29 +139,57 @@ public class MockGuardPlugin extends Plugin {
         return false;
     }
 
+    // Lấy danh sách app mock (có cache) - hàm NẶNG, chỉ được gọi từ bgExecutor, KHÔNG BAO GIỜ
+    // gọi trực tiếp từ UI thread.
+    private synchronized void refreshMockAppsIfNeeded() {
+        long now = System.currentTimeMillis();
+        if (cacheAppOps != null && (now - cacheTime) < CACHE_MS) return;
+        cacheAppOps = mockAppsViaAppOps();
+        cacheLegacy = legacyMockPermApps();
+        cacheTime = now;
+    }
+
+    // Callback vị trí (loc) chạy trên UI thread -> chỉ đóng gói toạ độ rồi giao hết việc
+    // nặng (quét app, kiểm tra root...) cho bgExecutor, resolve() sẽ chạy từ thread nền đó.
     private void reply(PluginCall call, AtomicBoolean done, Location loc) {
         if (!done.compareAndSet(false, true)) return;
-        JSArray appOpsMockApps = mockAppsViaAppOps();
-        boolean osFlaggedMock = loc != null && isMock(loc);
-        // "mock" = cờ chính thức của OS trên chính location vừa lấy được, HOẶC có app đang
-        // được hệ thống cấp quyền mock-location ngay lúc này (bắt được cả trường hợp OS
-        // không gắn cờ lên object Location vì app giả hook thẳng vào provider).
-        boolean mock = osFlaggedMock || appOpsMockApps.length() > 0;
+        final double lat = loc != null ? loc.getLatitude() : 0;
+        final double lng = loc != null ? loc.getLongitude() : 0;
+        final float acc = loc != null ? loc.getAccuracy() : 0;
+        final boolean hasLoc = loc != null;
+        final boolean osFlaggedMock = loc != null && isMock(loc);
 
-        JSObject o = new JSObject();
-        o.put("known", loc != null);
-        o.put("mock", mock);
-        o.put("osFlaggedMock", osFlaggedMock);
-        if (loc != null) {
-            o.put("lat", loc.getLatitude());
-            o.put("lng", loc.getLongitude());
-            o.put("acc", loc.getAccuracy());
-        }
-        o.put("mockApps", appOpsMockApps);
-        o.put("legacyMockPermApps", legacyMockPermApps());
-        o.put("devOptions", devOptionsOn());
-        o.put("rootOrXposed", rootOrXposedDetected());
-        call.resolve(o);
+        bgExecutor.execute(() -> {
+            try {
+                refreshMockAppsIfNeeded();
+                JSArray appOpsMockApps = cacheAppOps != null ? cacheAppOps : new JSArray();
+                JSArray legacyApps = cacheLegacy != null ? cacheLegacy : new JSArray();
+                // "mock" = cờ chính thức của OS trên chính location vừa lấy được, HOẶC có app đang
+                // được hệ thống cấp quyền mock-location ngay lúc này (bắt được cả trường hợp OS
+                // không gắn cờ lên object Location vì app giả hook thẳng vào provider).
+                boolean mock = osFlaggedMock || appOpsMockApps.length() > 0;
+
+                JSObject o = new JSObject();
+                o.put("known", hasLoc);
+                o.put("mock", mock);
+                o.put("osFlaggedMock", osFlaggedMock);
+                if (hasLoc) {
+                    o.put("lat", lat);
+                    o.put("lng", lng);
+                    o.put("acc", acc);
+                }
+                o.put("mockApps", appOpsMockApps);
+                o.put("legacyMockPermApps", legacyApps);
+                o.put("devOptions", devOptionsOn());
+                o.put("rootOrXposed", rootOrXposedDetected());
+                call.resolve(o);
+            } catch (Exception e) {
+                JSObject o = new JSObject();
+                o.put("known", hasLoc);
+                o.put("mock", osFlaggedMock);
+                call.resolve(o);
+            }
+        });
     }
 
     @PluginMethod
