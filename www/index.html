@@ -356,6 +356,13 @@ iframe{border-radius:16px;border:1px solid var(--gbd)}
   </div>
 </div>
 
+<div id="alarmOv" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#b3261e;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;animation:alarmFlash 0.8s infinite alternate">
+  <style>@keyframes alarmFlash{from{background:#b3261e}to{background:#ff5449}}</style>
+  <div style="font-size:72px">🚨</div>
+  <div style="font-size:28px;font-weight:700;margin:8px 0">BÁO ĐỘNG</div>
+  <div id="alarmText" style="font-size:20px;line-height:1.4;max-width:520px;margin-bottom:28px"></div>
+  <button onclick="ackAlarm()" style="font-size:22px;padding:16px 36px;border:0;border-radius:12px;background:#fff;color:#b3261e;font-weight:700">ĐÃ NHẬN</button>
+</div>
 <script src="config.js"></script>
 <script>
 var API = (window.APP_CONFIG || {}).API_URL;
@@ -1716,6 +1723,10 @@ function loadUsers(){
         var bl=document.createElement('button');bl.className='btn-small';bl.textContent='📍 Vị trí';
         bl.onclick=function(){focusLive(u.email);};
         btns.appendChild(bl);
+        var bA=document.createElement('button');bA.className='btn-small btn-red';bA.textContent='🔔 Báo động';
+        bA.onclick=function(){sendAlarmTo(u.email);};btns.appendChild(bA);
+        var bZ=document.createElement('button');bZ.className='btn-small';bZ.textContent='🎯 Vùng';
+        bZ.onclick=function(){startZonePick(u.email);};btns.appendChild(bZ);
       }
       d.appendChild(info);d.appendChild(btns);d.appendChild(panel);box.appendChild(d);
     });
@@ -1937,6 +1948,7 @@ function hbOnce(off){
       if(!$('adminSection').classList.contains('hidden')){refreshPresence();loadPending(true);if(liveOpen)loadLive(true);}
     } else {
       cb.textContent=res.unread||'';cb.style.display=res.unread?'inline-block':'none';
+      if(res.alarm)showAlarm(res.alarm);
     }
   });
 }
@@ -1949,13 +1961,13 @@ applyRole=function(){_applyRole();syncHb();};
 var _logout=logout;
 logout=function(msg){
   if(session&&!session.mustChange&&!(typeof msg==='string'&&msg))hbOnce(true);   // báo offline ngay khi đăng xuất
-  closeChat(true);
+  closeChat(true);stopAlarm();alarmAckedId='';
   _logout(msg);
 };
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')hbOnce();});
 
-// ================= BẢN ĐỒ VỊ TRÍ TRỰC TIẾP (CHỈ ADMIN) =================
-var liveOpen=false, liveMap=null, liveLayer=null, liveData=[], liveFocus='';
+// ================= BẢN ĐỒ VỊ TRÍ TRỰC TIẾP + BÁO ĐỘNG + VÙNG (CHỈ ADMIN) =================
+var liveOpen=false, liveMap=null, liveLayer=null, liveData=[], liveFocus='', zonePick='', livePop='', liveRedraw=false;
 function loadLeaflet(){
   if(window.L)return Promise.resolve();
   return new Promise(function(ok,bad){
@@ -1966,6 +1978,7 @@ function loadLeaflet(){
 }
 function toggleLive(){
   if(!isAdmin())return;
+  if(liveOpen&&zonePick){zonePick='';}
   liveOpen=!liveOpen;
   $('liveMap').classList.toggle('hidden',!liveOpen);
   $('liveRefresh').classList.toggle('hidden',!liveOpen);
@@ -1988,34 +2001,157 @@ function loadLive(silent){
     drawLive();
   }).catch(function(e){$('liveInfo').innerHTML='<span class="error">'+esc(e.message)+'</span>';});
 }
+function sendAlarmTo(email){
+  if(!isAdmin())return;
+  var t=prompt('Nội dung báo động gửi tới '+email+':','Bạn đang đi sai hướng / đi lạc. Vui lòng quay lại khu vực được giao.');
+  if(t===null)return;
+  if(!confirm('Gửi báo động (còi + màn hình đỏ) tới '+email+'?'))return;
+  adminMsg('Đang gửi báo động...');
+  api('sendAlarm',{target:email,text:t},true).then(function(res){
+    adminMsg((res&&res.message)||'Lỗi.',res&&res.success?'ok':'error');
+    if(liveOpen)loadLive(true);
+  });
+}
+function cancelAlarmFor(email){
+  if(!isAdmin())return;
+  api('cancelAlarm',{target:email},true).then(function(res){
+    adminMsg((res&&res.message)||'Lỗi.',res&&res.success?'ok':'error');
+    if(liveOpen)loadLive(true);
+  });
+}
+function startZonePick(email){
+  if(!isAdmin())return;
+  zonePick=email;
+  if(!liveOpen)toggleLive();
+  else if(liveMap)drawInfo();
+  $('liveMap').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function clearZone(email){
+  if(!isAdmin()||!confirm('Xoá vùng làm việc của '+email+'?'))return;
+  api('setZone',{target:email,clear:1},true).then(function(res){
+    adminMsg((res&&res.message)||'Lỗi.',res&&res.success?'ok':'error');
+    if(liveOpen)loadLive(true);
+  });
+}
+function onLiveClick(e){
+  if(!zonePick)return;
+  var em=zonePick;
+  var r=prompt('Bán kính vùng làm việc cho '+em+' (mét, 50 – 50000):','500');
+  if(r===null){zonePick='';drawInfo();return;}
+  r=Math.round(Number(r));
+  if(!isFinite(r)||r<50||r>50000){alert('Bán kính phải từ 50 đến 50000 mét.');return;}
+  zonePick='';adminMsg('Đang lưu vùng...');
+  api('setZone',{target:em,lat:e.latlng.lat,lng:e.latlng.lng,r:r},true).then(function(res){
+    adminMsg((res&&res.message)||'Lỗi.',res&&res.success?'ok':'error');
+    loadLive(true);
+  });
+}
+function popupFor(x){
+  var d=document.createElement('div');
+  var h='<b>'+esc(x.email)+'</b><br>'+(x.online?'🟢 Online':'⚪ Offline')+' • '+esc(fmtAgo(x.agoSec))+'<br>Sai số ~'+x.acc+'m';
+  if(x.zone)h+='<br>🎯 Vùng '+x.zone.r+'m: '+(x.outside?'<b style="color:#d93025">⚠️ ĐANG Ở NGOÀI VÙNG</b>':'trong vùng');
+  if(x.alarm)h+='<br>🔔 Báo động'+(x.alarm.auto?' (tự động)':'')+' gửi '+esc(fmtAgo(x.alarm.agoSec))+', chờ nhân viên nhận';
+  h+='<br><a href="https://www.google.com/maps/search/?api=1&query='+x.lat+','+x.lng+'" target="_blank" rel="noopener">Mở Google Maps</a><div class="row" style="margin-top:6px;flex-wrap:wrap"></div>';
+  d.innerHTML=h;
+  var row=d.querySelector('.row');
+  function btn(t,cls,fn){var b=document.createElement('button');b.className='btn-small '+(cls||'');b.textContent=t;b.style.cssText='padding:6px 8px;font-size:12px;margin:2px';b.onclick=fn;row.appendChild(b);}
+  btn('🔔 Báo động','btn-red',function(){sendAlarmTo(x.email);});
+  if(x.alarm)btn('🔕 Huỷ','',function(){cancelAlarmFor(x.email);});
+  btn('🎯 Đặt vùng','',function(){startZonePick(x.email);});
+  if(x.zone)btn('✖ Xoá vùng','',function(){clearZone(x.email);});
+  return d;
+}
+function drawInfo(){
+  var box=$('liveInfo');
+  if(zonePick){box.innerHTML='🎯 Bấm lên bản đồ để chọn <b>tâm vùng</b> cho '+esc(zonePick)+' (bấm "Đóng bản đồ" để huỷ).';return;}
+  var pts=0,on=0,out=0,al=0;
+  liveData.forEach(function(x){
+    if(typeof x.lat==='number'){pts++;if(x.online)on++;if(x.outside)out++;}
+    if(x.alarm)al++;
+  });
+  box.textContent=(pts?('Có vị trí '+pts+' nhân viên • '+on+' đang online'+(out?' • ⚠️ '+out+' ngoài vùng':'')+(al?' • 🔔 '+al+' báo động chờ nhận':'')+' • tự làm mới 30 giây'):'Chưa có nhân viên nào báo vị trí.');
+}
 function drawLive(){
   var box=$('liveMap');
   if(!liveMap){
     liveMap=L.map(box).setView([21.0285,105.8542],12);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(liveMap);
     liveLayer=L.layerGroup().addTo(liveMap);
+    liveMap.on('click',onLiveClick);
+    liveMap.on('popupclose',function(){if(!liveRedraw)livePop='';});
   }
   setTimeout(function(){liveMap.invalidateSize();},50);
-  liveLayer.clearLayers();
-  var pts=[],focusPt=null,on=0;
+  liveRedraw=true;liveLayer.clearLayers();
+  var pts=[],focusPt=null,reopen=null;
   liveData.forEach(function(x){
+    if(x.zone)L.circle([x.zone.lat,x.zone.lng],{radius:x.zone.r,color:x.outside?'#d93025':'#f9ab00',weight:2,dashArray:'6 6',fillOpacity:0.05,interactive:false}).addTo(liveLayer);
     if(typeof x.lat!=='number'||typeof x.lng!=='number')return;
-    if(x.online)on++;
-    var col=x.online?'#188038':'#80868b';
+    var col=x.outside?'#d93025':(x.online?'#188038':'#80868b');
     var m=L.circleMarker([x.lat,x.lng],{radius:9,color:'#fff',weight:2,fillColor:col,fillOpacity:1}).addTo(liveLayer);
-    if(x.acc>0&&x.acc<2000)L.circle([x.lat,x.lng],{radius:x.acc,color:col,weight:1,fillOpacity:0.08}).addTo(liveLayer);
-    var gm='https://www.google.com/maps/search/?api=1&query='+x.lat+','+x.lng;
-    m.bindPopup('<b>'+esc(x.email)+'</b><br>'+(x.online?'🟢 Online':'⚪ Offline')+' • '+esc(fmtAgo(x.agoSec))+'<br>Sai số ~'+x.acc+'m<br><a href="'+gm+'" target="_blank" rel="noopener">Mở Google Maps</a>');
-    m.bindTooltip(x.email.split('@')[0],{permanent:true,direction:'top',offset:[0,-8]});
+    if(x.acc>0&&x.acc<2000)L.circle([x.lat,x.lng],{radius:x.acc,color:col,weight:1,fillOpacity:0.08,interactive:false}).addTo(liveLayer);
+    m.bindPopup(popupFor(x),{autoPan:false});
+    m.on('popupopen',function(){livePop=x.email;});
+    m.bindTooltip(x.email.split('@')[0]+(x.outside?' ⚠️':'')+(x.alarm?' 🔔':''),{permanent:true,direction:'top',offset:[0,-8]});
     pts.push([x.lat,x.lng]);
-    if(x.email===liveFocus){focusPt=[x.lat,x.lng];m.openPopup();}
+    if(x.email===liveFocus){focusPt=[x.lat,x.lng];reopen=m;}
+    else if(x.email===livePop&&!reopen)reopen=m;
   });
   if(focusPt)liveMap.setView(focusPt,17);
-  else if(pts.length===1)liveMap.setView(pts[0],16);
+  else if(pts.length===1&&!liveMap._fitDone){liveMap.setView(pts[0],16);liveMap._fitDone=true;}
   else if(pts.length>1&&!liveMap._fitDone){liveMap.fitBounds(pts,{padding:[30,30]});liveMap._fitDone=true;}
+  if(reopen)reopen.openPopup();
+  liveRedraw=false;
+  drawInfo();
   if(liveFocus&&!focusPt)$('liveInfo').textContent='Chưa có vị trí của '+liveFocus+' (chưa mở app hoặc chưa cho phép định vị).';
-  else $('liveInfo').textContent=pts.length?('Có vị trí '+pts.length+' nhân viên • '+on+' đang online • tự làm mới 30 giây'):'Chưa có nhân viên nào báo vị trí.';
   liveFocus='';
+}
+
+// ================= BÁO ĐỘNG TRÊN MÁY NHÂN VIÊN =================
+var alarmId='', alarmAckedId='', alarmCtx=null, alarmOsc=null, alarmTimer=null, alarmVib=null;
+function unlockAudio(){
+  try{
+    if(!alarmCtx){var A=window.AudioContext||window.webkitAudioContext;if(A)alarmCtx=new A();}
+    if(alarmCtx&&alarmCtx.state==='suspended')alarmCtx.resume();
+  }catch(e){}
+}
+['pointerdown','touchstart','keydown'].forEach(function(ev){document.addEventListener(ev,unlockAudio,{passive:true});});
+function sirenStart(){
+  unlockAudio();
+  try{
+    if(alarmCtx&&!alarmOsc){
+      alarmOsc=alarmCtx.createOscillator();var g=alarmCtx.createGain();
+      alarmOsc.type='square';g.gain.value=0.6;alarmOsc.connect(g);g.connect(alarmCtx.destination);alarmOsc.start();
+      var hi=false;
+      alarmTimer=setInterval(function(){hi=!hi;try{alarmOsc.frequency.setValueAtTime(hi?1000:650,alarmCtx.currentTime);}catch(e){}},450);
+      alarmOsc.frequency.setValueAtTime(650,alarmCtx.currentTime);
+    }
+  }catch(e){}
+  try{
+    if(navigator.vibrate){navigator.vibrate([500,250,500,250]);if(!alarmVib)alarmVib=setInterval(function(){navigator.vibrate([500,250,500,250]);},1500);}
+  }catch(e){}
+}
+function stopAlarm(){
+  try{if(alarmTimer){clearInterval(alarmTimer);alarmTimer=null;}}catch(e){}
+  try{if(alarmOsc){alarmOsc.stop();alarmOsc.disconnect();alarmOsc=null;}}catch(e){alarmOsc=null;}
+  try{if(alarmVib){clearInterval(alarmVib);alarmVib=null;}if(navigator.vibrate)navigator.vibrate(0);}catch(e){}
+  var ov=$('alarmOv');if(ov)ov.classList.add('hidden');
+  alarmId='';
+}
+function showAlarm(a){
+  if(!a||!a.id||a.id===alarmAckedId||a.id===alarmId)return;
+  alarmId=a.id;
+  $('alarmText').textContent=a.text||'Có báo động từ quản trị viên.';
+  $('alarmOv').classList.remove('hidden');
+  sirenStart();
+}
+function ackAlarm(){
+  var id=alarmId;
+  if(!id){stopAlarm();return;}
+  alarmAckedId=id;
+  stopAlarm();
+  var pr={id:id};
+  if(userPos){pr.lat=userPos.lat;pr.lng=userPos.lng;pr.acc=Math.round(userPos.acc);pr.pt=userPos.time;}
+  api('alarmAck',pr,true);
 }
 function refreshPresence(){
   if(!isAdmin())return;
